@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/elex_analytics/!svn/ver/16027/branches/DelayLogServer/src/com/xingcloud/delayserver
+END
+DelayAnalysisLogicRunnable.java
+K 25
+svn:wc:ra_dav:version-url
+V 120
+/svn/elex_analytics/!svn/ver/16027/branches/DelayLogServer/src/com/xingcloud/delayserver/DelayAnalysisLogicRunnable.java
+END
+DelayServiceHandler.java
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svn/elex_analytics/!svn/ver/14641/branches/DelayLogServer/src/com/xingcloud/delayserver/DelayServiceHandler.java
+END
+UidValue.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/svn/elex_analytics/!svn/ver/14548/branches/DelayLogServer/src/com/xingcloud/delayserver/UidValue.java
+END
+ProcessDelayLog.java
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/elex_analytics/!svn/ver/13673/branches/DelayLogServer/src/com/xingcloud/delayserver/ProcessDelayLog.java
+END
+EventCountSumUid.java
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/svn/elex_analytics/!svn/ver/14640/branches/DelayLogServer/src/com/xingcloud/delayserver/EventCountSumUid.java
+END
