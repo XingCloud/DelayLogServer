@@ -55,8 +55,10 @@ public class DelayServiceHandler implements LogService.Iface {
     @Override
     public int sendLogDay(List<String> logs, long daytptime) throws TException {
         synchronized (this) {
+            LOG.info("receive logs");
             processLogs(logs);
             int times = i.incrementAndGet();
+            LOG.info("times is "+times);
             if (times > 100) {
                 if (ifNeedAnalysisDelayLog()) {
                     LOG.info("get needAnalysisDelayLog signal from redis.");
@@ -73,6 +75,7 @@ public class DelayServiceHandler implements LogService.Iface {
 
     //把每次读到的延迟log按项目/事件/日期的顺序放进map
     private void processLogs(List<String> logs) {
+        LOG.info("enter process Log");
         long currentTime = System.currentTimeMillis();
         for (String log : logs) {
             String[] tmps = log.split("\t");
@@ -124,9 +127,11 @@ public class DelayServiceHandler implements LogService.Iface {
             }
             events.add(tmps[2]);
         }
+      LOG.info("leave process LOG");
     }
 
     private boolean ifNeedAnalysisDelayLog() {
+        LOG.info("test if need analysis delay log");
         ShardedJedis shardedRedis = null;
         try {
             shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
