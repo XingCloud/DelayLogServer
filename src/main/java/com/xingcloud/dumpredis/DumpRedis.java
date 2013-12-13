@@ -37,6 +37,8 @@ public class DumpRedis implements Runnable {
 
   private static String MySQL_PWD = "23XFdx5";
 
+
+
   private Map<String, Set<String>> eventFilters = new HashMap<String, Set<String>>();
 
   @Override
@@ -44,7 +46,7 @@ public class DumpRedis implements Runnable {
      LOG.info("dumpredis start.....");
      while(true){
        try {
-         Thread.sleep(1000000);
+         Thread.sleep(20000);
          if(ifNeedDumpDelayLog()){
            LOG.info("get ifNeedDumpDelayLog signal from redis");
            dump();
@@ -72,8 +74,8 @@ public class DumpRedis implements Runnable {
     ShardedJedis shardedRedis = null;
     try {
       shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-      shardedRedis.del("delaysignal");
-      shardedRedis.lpush("delaysignal", "dump");
+      shardedRedis.del(Constants.SIGNAL_KEY);
+      shardedRedis.lpush(Constants.SIGNAL_KEY, Constants.SIGNAL_DUMP);
       LOG.info("send delay dump sinal to redis...");
     } catch (Exception e) {
       LOG.error(e.getMessage());
@@ -85,11 +87,13 @@ public class DumpRedis implements Runnable {
   }
 
   private boolean ifNeedDumpDelayLog() {
+    LOG.info("test if need dump delay log");
     ShardedJedis shardedRedis = null;
     try {
       shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-      String result = shardedRedis.lpop("delaysignal");
-      if (result != null && result.equals("dump"))
+      String result = shardedRedis.lpop(Constants.SIGNAL_KEY);
+      LOG.info("get result "+result);
+      if (result != null && result.equals(Constants.SIGNAL_DUMP))
         return true;
     } catch (Exception e) {
       LOG.error(e.getMessage(), e);

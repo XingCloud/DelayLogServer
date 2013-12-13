@@ -47,8 +47,9 @@ public class ParseRDB {
         if (!result)
             return result;
         ShardedJedis shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-        shardedRedis.del("delaysignal");
-        shardedRedis.lpush("delaysignal","process");
+        shardedRedis.del(Constants.SIGNAL_KEY);
+        shardedRedis.lpush(Constants.SIGNAL_KEY,Constants.SIGNAL_PROCESS);
+        LOG.info("scp from remote and parse finished . send signal "+Constants.SIGNAL_PROCESS);
         return true;
     }
 

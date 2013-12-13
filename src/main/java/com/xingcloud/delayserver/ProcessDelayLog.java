@@ -2,6 +2,7 @@ package com.xingcloud.delayserver;
 
 import com.xingcloud.delayserver.redisutil.RedisShardedPoolResourceManager;
 import com.xingcloud.delayserver.thrift.LogService;
+import com.xingcloud.delayserver.util.Constants;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -47,7 +48,7 @@ public class ProcessDelayLog {
         ShardedJedis shardedRedis = null;
         try {
             shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-            shardedRedis.del("delaysignal");
+            shardedRedis.del(Constants.SIGNAL_KEY);
             LOG.info("delete redis delay signal.");
         } catch (Exception e) {
             LOG.error(e.getMessage());
