@@ -41,10 +41,12 @@ public class DumpRedis implements Runnable {
 
   @Override
   public void run() {
+     LOG.info("dumpredis start.....");
      while(true){
        try {
          Thread.sleep(1000000);
          if(ifNeedDumpDelayLog()){
+           LOG.info("get ifNeedDumpDelayLog signal from redis");
            dump();
          }
        } catch (Exception e) {
@@ -54,12 +56,13 @@ public class DumpRedis implements Runnable {
   }
 
   public void dump() throws Exception {
+    LOG.info("start to  dump data from redis and parse.");
     long currentTime = System.currentTimeMillis();
     OrignalData.getInstance().clear();
     FilterDelayEventRelationShip.getInstance().clear();
     ParseRDB parseRDB = new ParseRDB();
     parseRDB.scpFromRemoteAndParse();
-    LOG.info("parse key to local file using " + (System.currentTimeMillis() - currentTime) + "ms.");
+    LOG.info("parse cache key to local file and load in Mem using " + (System.currentTimeMillis() - currentTime) + "ms.");
     //loadToMySQL();
   }
 
@@ -69,6 +72,7 @@ public class DumpRedis implements Runnable {
     ShardedJedis shardedRedis = null;
     try {
       shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
+      shardedRedis.del("delaysignal");
       shardedRedis.lpush("delaysignal", "dump");
       LOG.info("send delay dump sinal to redis...");
     } catch (Exception e) {

@@ -35,6 +35,7 @@ public class DelayServiceHandler implements LogService.Iface {
 
 
     public DelayServiceHandler() {
+        LOG.info("DelayServiceHandler start.");
         delayLogs = new HashMap<String, Map<String, Map<Long, Set<UidValue>>>>();
         delayEvents = new HashMap<String, Set<String>>();
         blackDelayPids = new HashSet<String>();

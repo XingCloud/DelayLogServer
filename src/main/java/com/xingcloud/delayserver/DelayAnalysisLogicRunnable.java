@@ -282,8 +282,8 @@ public class DelayAnalysisLogicRunnable implements Runnable {
           resultValue.addSum = addSum;
         } else {
           if (checkIfExpireRedisKey(key, cacheCount, cacheSum, resultValue.addCount + addCount, resultValue.addSum + addSum)) {
-            LOG.info("===delCacheInMySQLCache===mysql+redis addcount/addsum reach the ratio." + key + "redis " +
-              "count&sum:" + cacheCount + "\t" + cacheSum + " mysql+redis addcount/addsum:" +
+            LOG.info("===delCacheInMem===Mem+redis addcount/addsum reach the ratio." + key + "redis " +
+              "count&sum:" + cacheCount + "\t" + cacheSum + " Mem+redis addcount/addsum:" +
               (resultValue.addCount + addCount) + "\t" + (resultValue.addSum + addSum));
             delCacheInMemCache(shardedRedis, keyId, key);
           } else {
@@ -292,12 +292,12 @@ public class DelayAnalysisLogicRunnable implements Runnable {
           }
         }
       } else {
-        LOG.info("new result.insert into mysql. " + key + "\t" + cacheCount + "\t" + cacheSum + "\t" +
+        LOG.info("new result.insert into Mememory. " + key + "\t" + cacheCount + "\t" + cacheSum + "\t" +
           addCount + "\t" + addSum);
         AnaResultTable.getInstance().addResult(key, date, cacheCount, cacheSum, addCount, addSum);
       }
     } catch (Exception e) {
-      LOG.error("anaResultInMysql " + e.getMessage(), e);
+      LOG.error("anaResultInMem " + e.getMessage(), e);
     }
   }
 

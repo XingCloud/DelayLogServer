@@ -53,12 +53,15 @@ public class ParseRDB {
     }
 
     private void clearCacheDir() {
+        LOG.info("Clear cache dir");
         File dir = new File(Constants.REDIS_CACHE_DIR);
         if (dir.exists() && dir.isDirectory()) {
             File delFiles[] = dir.listFiles();
             for (File delFile : delFiles)
-                if (delFile.isFile())
+                if (delFile.isFile()){
                     delFile.delete();
+                    LOG.info("delete file "+delFile);
+                }
         }
     }
 }
@@ -111,7 +114,7 @@ class ScpParseChildThread implements Runnable {
         //把json格式变为mysql load需要的数据格式
         currentTime = System.currentTimeMillis();
         parseToMem();
-        LOG.info(remoteRedis + "parseToMySQLFormat using " + (System.currentTimeMillis() - currentTime) + "ms.");
+        LOG.info(remoteRedis + "parseToMem using " + (System.currentTimeMillis() - currentTime) + "ms.");
 
     }
 
