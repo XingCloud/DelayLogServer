@@ -1,9 +1,11 @@
 package com.xingcloud.delayserver;
 
+import com.xingcloud.collections.LevelEvent;
 import com.xingcloud.delayserver.util.Constants;
 import com.xingcloud.delayserver.util.Helper;
 import com.xingcloud.delayserver.thrift.LogService;
 import com.xingcloud.delayserver.redisutil.RedisShardedPoolResourceManager;
+import com.xingcloud.dumpredis.DumpRedis;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.TException;
@@ -31,6 +33,7 @@ public class DelayServiceHandler implements LogService.Iface {
 
     private Set<String> blackDelayPids;
 
+
     public DelayServiceHandler() {
         delayLogs = new HashMap<String, Map<String, Map<Long, Set<UidValue>>>>();
         delayEvents = new HashMap<String, Set<String>>();
@@ -38,6 +41,8 @@ public class DelayServiceHandler implements LogService.Iface {
         blackDelayPids.add("fishman");
         blackDelayPids.add("db-monitor");
         blackDelayPids.add("defender");
+        Thread dumpThread=new Thread(new DumpRedis());
+        dumpThread.start();
     }
 
 
@@ -136,6 +141,7 @@ public class DelayServiceHandler implements LogService.Iface {
         }
         return false;
     }
+
 
 
 }

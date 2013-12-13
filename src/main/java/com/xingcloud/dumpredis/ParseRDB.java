@@ -1,5 +1,6 @@
 package com.xingcloud.dumpredis;
 
+import com.xingcloud.delayserver.redisutil.RedisShardedPoolResourceManager;
 import com.xingcloud.delayserver.util.Constants;
 import com.xingcloud.delayserver.util.Helper;
 import org.apache.commons.logging.Log;
@@ -9,6 +10,8 @@ import java.io.*;
 import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import com.xingcloud.collections.*;
+import redis.clients.jedis.ShardedJedis;
 
 /**
  * User: IvyTang
@@ -43,9 +46,9 @@ public class ParseRDB {
         boolean result = executor.awaitTermination(2, TimeUnit.HOURS);
         if (!result)
             return result;
-
-        combileFiles();
-
+        ShardedJedis shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
+        shardedRedis.del("delaysignal");
+        shardedRedis.lpush("delaysignal","process");
         return true;
     }
 
@@ -57,53 +60,6 @@ public class ParseRDB {
                 if (delFile.isFile())
                     delFile.delete();
         }
-    }
-
-    /**
-     * 合并所有的keycache和filter到一个文件，keycache加上每行的id，filter去重再加id
-     */
-    private void combileFiles() {
-        StringBuilder keySB = new StringBuilder();
-        keySB.append("awk 'BEGIN{total=-1}{total+=1;print total\"\\t\"$0}' ");
-        StringBuilder filterSB = new StringBuilder();
-        filterSB.append("sort ");
-        for (String redisIP : Constants.REDIS_IPS) {
-            for (int i = 1; i <= Constants.SHARD_COUNT; i++) {
-                keySB.append(Constants.REDIS_CACHE_DIR);
-                keySB.append(Constants.KEY_CACAHE_FILE);
-                keySB.append("_");
-                keySB.append(redisIP);
-                keySB.append("_");
-                keySB.append(i);
-                keySB.append(" ");
-
-                filterSB.append(Constants.REDIS_CACHE_DIR);
-                filterSB.append(Constants.FILTER_FILE);
-                filterSB.append("_");
-                filterSB.append(redisIP);
-                filterSB.append("_");
-                filterSB.append(i);
-                filterSB.append(" ");
-            }
-        }
-        keySB.append(" > ");
-        keySB.append(Constants.REDIS_CACHE_DIR);
-        keySB.append(Constants.KEY_CACAHE_FILE);
-
-        filterSB.append("|uniq|awk 'BEGIN{total=-1}{total+=1;print total\"\\t\"$0}'");
-        filterSB.append(" > ");
-        filterSB.append(Constants.REDIS_CACHE_DIR);
-        filterSB.append(Constants.FILTER_FILE);
-
-        long currentTime = System.currentTimeMillis();
-
-        Helper.execShell(keySB.toString());
-        LOG.info("combile keycache " + keySB.toString() + " using " + (System.currentTimeMillis() - currentTime) + "ms.");
-
-        currentTime = System.currentTimeMillis();
-        Helper.execShell(filterSB.toString());
-        LOG.info("combile filter " + filterSB.toString() + " using " + (System.currentTimeMillis() - currentTime) + "ms.");
-
     }
 }
 
@@ -154,172 +110,137 @@ class ScpParseChildThread implements Runnable {
 
         //把json格式变为mysql load需要的数据格式
         currentTime = System.currentTimeMillis();
-        parseToMySQLFormat();
+        parseToMem();
         LOG.info(remoteRedis + "parseToMySQLFormat using " + (System.currentTimeMillis() - currentTime) + "ms.");
 
     }
 
-    private void parseToMySQLFormat() {
-        BufferedReader reader = null;
-        BufferedWriter keyCacheWriter = null;
-        BufferedWriter filterWriter = null;
+    private void parseToMem(){
+      LOG.info("begin to parse to Mem...");
+      BufferedReader reader = null;
+      BufferedWriter keyCacheWriter = null;
+      BufferedWriter filterWriter = null;
+      try {
+        reader = new BufferedReader(new FileReader(localParseFile));
+        String currentLine = null;
+        String lastLine = null;
+
+        //读rdb的生成的json文件，第一行舍弃，最后一行去掉不用的{}
+        while (true) {
+          lastLine = currentLine;
+          currentLine = reader.readLine();
+          if (lastLine == null) { //第一行
+            currentLine = reader.readLine();
+            lastLine = currentLine;
+          }
+          if (currentLine == null) {//最后一行
+            if (lastLine != null) {
+              parseOneLineToMem(lastLine, true);
+            }
+            break;
+          } else {
+            parseOneLineToMem(lastLine, false);
+          }
+        }
+      } catch (FileNotFoundException e) {
+        LOG.error("FileNotFoundException", e);
+      } catch (IOException e) {
+        LOG.error("IOException", e);
+      } finally {
         try {
-            reader = new BufferedReader(new FileReader(localParseFile));
-            keyCacheWriter = new BufferedWriter(new FileWriter(localParseKeyFile));
-            filterWriter = new BufferedWriter(new FileWriter(localParseFilterFile));
-            String currentLine = null;
-            String lastLine = null;
-
-            //读rdb的生成的json文件，第一行舍弃，最后一行去掉不用的{}
-            while (true) {
-                lastLine = currentLine;
-                currentLine = reader.readLine();
-                if (lastLine == null) { //第一行
-                    currentLine = reader.readLine();
-                    lastLine = currentLine;
-                }
-                if (currentLine == null) {//最后一行
-                    if (lastLine != null) {
-                        String mysqlLine = parseOneLine(lastLine, true);
-                        if (mysqlLine != null) {
-                            keyCacheWriter.write(mysqlLine);
-                            keyCacheWriter.write("\n");
-                        }
-                    }
-                    break;
-                } else {
-                    String mysqlLine = parseOneLine(lastLine, false);
-                    if (mysqlLine != null) {
-                        keyCacheWriter.write(mysqlLine);
-                        keyCacheWriter.write("\n");
-                    }
-                }
-            }
-
-            int i = 0;
-            for (Map.Entry<String, Set<String>> entry : filters.entrySet()) {
-                for (String filter : entry.getValue()) {
-                    filterWriter.write(entry.getKey() + "\t" + filter + "\n");
-                    i++;
-                }
-
-            }
-            keyCacheWriter.flush();
-            filterWriter.flush();
-        } catch (FileNotFoundException e) {
-            LOG.error("FileNotFoundException", e);
+          if (reader != null) {
+            reader.close();
+          }
         } catch (IOException e) {
-            LOG.error("IOException", e);
-        } finally {
-            try {
-                if (reader != null) {
-                    reader.close();
-                }
-                if (keyCacheWriter != null) {
-                    keyCacheWriter.close();
-                }
-                if (filterWriter != null) {
-                    filterWriter.close();
-                }
-            } catch (IOException e) {
-                LOG.error("IOException", e);
-            }
+          LOG.error("IOException", e);
         }
+      }
 
     }
 
-    private String parseOneLine(String line, boolean ifLastLine) {
-        String lineBack = line;
-        if (!line.contains(VF_ALL))
-            return null;
-        try {
-            if (ifLastLine) {
-                line = line.substring(0, line.length() - 15);
-            } else {
-                line = line.substring(0, line.length() - 1);
-            }
-            int keyValueSep = line.lastIndexOf("{");
-            String key = line.substring(0, keyValueSep - 1);
-            key = key.substring(1, key.length() - 1);
-
-            StringBuilder stringBuilder = new StringBuilder();
-
-            //前五项 COMMON/GROUPBY ， pid ,startdate, enddate,eventfilter, 可以用，找到
-
-            //COMMON/GROUP
-            int commaIndex = key.indexOf(",");
-            String type = key.substring(0, commaIndex);
-            stringBuilder.append(type);
-            stringBuilder.append("\t");
-            key = key.substring(commaIndex + 1, key.length());
-
-            //pid
-            commaIndex = key.indexOf(",");
-            String pid = key.substring(0, commaIndex);
-            stringBuilder.append(pid);
-            stringBuilder.append("\t");
-            key = key.substring(commaIndex + 1, key.length());
-
-            //startdate and enddate
-            String date = null;
-            for (int i = 0; i < 2; i++) {
-                commaIndex = key.indexOf(",");
-                date = key.substring(0, commaIndex).replaceAll("-", "");
-                stringBuilder.append(date);
-                stringBuilder.append("\t");
-                key = key.substring(commaIndex + 1, key.length());
-            }
-            //如果enddate在30天内，这条cache合法
-            if (!checkEventDate(date, System.currentTimeMillis()))
-                return null;
-
-            //eventfilter
-            commaIndex = key.indexOf(",");
-            String event = key.substring(0, commaIndex);
-            stringBuilder.append(event);
-            stringBuilder.append("\t");
-            key = key.substring(commaIndex + 1, key.length());
-
-            //eventfilter如果不合法，返回
-            if (!checkEventFilterLegal(event))
-                return null;
-
-            //处理eventfilter
-            Set<String> pFilters = filters.get(pid);
-            if (pFilters == null) {
-                pFilters = new HashSet<String>();
-                filters.put(pid, pFilters);
-            }
-            pFilters.add(event);
-
-
-            //切分出segment
-            int segmentLastIndex = key.indexOf(VF_ALL) - 1;
-            stringBuilder.append(key.substring(0, segmentLastIndex));
-            stringBuilder.append("\t");
-
-            //补回 VF-ALL-0-0
-            stringBuilder.append("VF-ALL-0-0");
-            stringBuilder.append("\t");
-
-            //剩下的内容为period
-            key = key.substring(segmentLastIndex + VF_ALL.length() + 2);
-            int comma = -1;
-            while ((comma = key.indexOf(",")) > 0) {
-                stringBuilder.append(key.substring(0, comma));
-                stringBuilder.append("\t");
-                key = key.substring(comma + 1, key.length());
-            }
-            if (key.length() > 0) {
-                stringBuilder.append(key);
-            }
-            return stringBuilder.toString();
-        } catch (Exception e) {
-            LOG.warn("parse one line to mysql error." + lineBack, e);
+    private void parseOneLineToMem(String line, boolean ifLastLine){
+      String lineBack = line;
+      if (!line.contains(VF_ALL))
+          return ;
+      try {
+        if (ifLastLine) {
+          line = line.substring(0, line.length() - 15);
+        } else {
+          line = line.substring(0, line.length() - 1);
         }
-        return null;
-    }
+        int keyValueSep = line.lastIndexOf("{");
+        String key = line.substring(0, keyValueSep - 1);
+        key = key.substring(1, key.length() - 1);
 
+
+        //前五项 COMMON/GROUPBY ， pid ,startdate, enddate,eventfilter, 可以用，找到
+
+        //type: COMMON/GROUP
+        int commaIndex = key.indexOf(",");
+        String type = key.substring(0, commaIndex);
+        key = key.substring(commaIndex + 1, key.length());
+
+        //pid
+        commaIndex = key.indexOf(",");
+        String pid = key.substring(0, commaIndex);
+        key = key.substring(commaIndex + 1, key.length());
+
+        //startdate and enddate
+        String[] dates = new String[2];
+        for (int i = 0; i < 2; i++) {
+          commaIndex = key.indexOf(",");
+          dates[i] = key.substring(0, commaIndex).replaceAll("-", "");
+          key = key.substring(commaIndex + 1, key.length());
+        }
+        //如果enddate在30天内，这条cache合法
+        if (!checkEventDate(dates[1], System.currentTimeMillis()))
+          return ;
+
+        //eventfilter
+        commaIndex = key.indexOf(",");
+        String event = key.substring(0, commaIndex);
+        key = key.substring(commaIndex + 1, key.length());
+
+        //eventfilter如果不合法，返回
+        if (!checkEventFilterLegal(event))
+          return ;
+
+        //处理eventfilter
+        Set<String> pFilters = filters.get(pid);
+        if (pFilters == null) {
+          pFilters = new HashSet<String>();
+          filters.put(pid, pFilters);
+        }
+        pFilters.add(event);
+
+
+        //切分出segment
+        int segmentLastIndex = key.indexOf(VF_ALL) - 1;
+        String segment=key.substring(0, segmentLastIndex);
+
+        //剩下的内容为period
+        key = key.substring(segmentLastIndex + VF_ALL.length() + 2);
+        int comma = -1;
+        String timeUnitType,ref;
+        comma=key.indexOf(",");
+        if(comma>0){
+          timeUnitType=key.substring(0,comma);
+          ref=key.substring(comma+1,key.length());
+        }else {
+          timeUnitType=key;
+          ref=null;
+        }
+
+        FilterKey filterKey=new FilterKey(pid,event);
+        CacheKeyInfo cacheKeyInfo=new CacheKeyInfo(type,Long.valueOf(Helper.getDate(Long.valueOf(dates[0]))),
+          Long.valueOf(Helper.getDate(Long.valueOf(dates[1]))),segment,timeUnitType,ref);
+        OrignalData.getInstance().addCacheKey(filterKey,cacheKeyInfo);
+
+      } catch (Exception e) {
+        LOG.warn("parse one line to mysql error." + lineBack, e);
+      }
+
+    }
 
     private boolean checkEventFilterLegal(String event) {
         String[] tmps = event.split("\\.");

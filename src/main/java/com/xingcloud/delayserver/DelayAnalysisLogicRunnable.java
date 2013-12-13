@@ -1,13 +1,16 @@
 package com.xingcloud.delayserver;
 
+import com.xingcloud.collections.*;
 import com.xingcloud.delayserver.redisutil.RedisShardedPoolResourceManager;
 import com.xingcloud.delayserver.util.Constants;
+import com.xingcloud.dumpredis.DumpRedis;
 import com.xingcloud.util.HashFunctions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import redis.clients.jedis.ShardedJedis;
 
 import java.sql.*;
+import java.text.ParseException;
 import java.util.*;
 
 /**
@@ -31,6 +34,8 @@ public class DelayAnalysisLogicRunnable implements Runnable {
 
   private int FILTER_ONCE_CHECK = 1000;
 
+  private DumpRedis dumpRedis=new DumpRedis();
+
 
   public DelayAnalysisLogicRunnable(Map<String, Map<String, Map<Long, Set<UidValue>>>> delayLogs,
                                     Map<String, Set<String>> delayEvents) {
@@ -43,172 +48,55 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     LOG.info("enter DelayAnalysisLogicRunnable...");
 
 
-    Connection connection = null;
     try {
       LOG.info("=====" + delayLogs.size());
-      connection = getConnection();
-      pushDelayEventToMySQL(connection);
-      Map<Integer, Set<Integer>> relationships = buildFilterDelayEventRelationship(connection);
-      pushRelationShipToMySQL(relationships, connection);
-      relationships = null;
-      Map<String, EventCountSumUid> results = analysisLogs(connection);
-      putHandleCacheValueInMySQL(connection, results);
+      buildFilterDelayEventRelationship();
+      Map<String, EventCountSumUid> results = analysisLogs();
+      putHandleCacheValueInMem(results);
       LOG.info("=====" + delayLogs.size());
     } catch (Throwable e) {
       LOG.error(e.toString(), e);
       LOG.error(e.getMessage());
-    } finally {
-      closeConnection(connection);
     }
   }
 
-
-  //把每天延迟log的事件分层存进mysql
-  private void pushDelayEventToMySQL(Connection connection) {
-    long currentTime = System.currentTimeMillis();
-    Statement statement = null;
-    try {
-      statement = connection.createStatement();
-      long delayID = 0;
-      for (Map.Entry<String, Set<String>> entry : delayEvents.entrySet()) {
-        for (String event : entry.getValue()) {
-          StringBuilder stringBuilder = new StringBuilder();
-          stringBuilder.append("insert into delayevent(id,pid,");
-          String[] tmps = event.split("\\.");
-          for (int i = 0; i < tmps.length; i++) {
-            stringBuilder.append("l");
-            stringBuilder.append(i);
-            if (i < tmps.length - 1)
-              stringBuilder.append(",");
-          }
-          stringBuilder.append(") values(");
-          stringBuilder.append(delayID);
-          stringBuilder.append(",\"");
-          stringBuilder.append(entry.getKey());
-          stringBuilder.append("\",");
-          for (int i = 0; i < tmps.length; i++) {
-            stringBuilder.append("\"" + filterSpecialCharacters(tmps[i]) + "\"");
-            if (i < tmps.length - 1)
-              stringBuilder.append(",");
-          }
-          stringBuilder.append(")");
-          statement.execute(stringBuilder.toString());
-          delayID++;
-        }
-      }
-    } catch (SQLException e) {
-
-      LOG.error("pushDelayEventToMySQL error. " + e.getMessage());
-    } finally {
-      clearResultStatement(null, statement);
-    }
-    LOG.info("pushDelayEventToMySQL completed.using " + (System.currentTimeMillis() - currentTime) + "ms.");
-  }
 
   private String filterSpecialCharacters(String s) {
     s = s.replace("'", "");
     s = s.replace("\"", "");
-    s = s.replace("\\","");
+    s = s.replace("\\", "");
     return s;
   }
 
 
   //构建每个项目的filter和延迟event的对应关系，*.*的filter不构建对应关系
-  private Map<Integer, Set<Integer>> buildFilterDelayEventRelationship(Connection connection) {
+  private void buildFilterDelayEventRelationship() {
     long currentTime = System.currentTimeMillis();
-    Map<Integer, Set<Integer>> relationships = new HashMap<Integer, Set<Integer>>();
-    Statement statement = null;
-    Statement delayEventStatement = null;
-    ResultSet resultSet = null;
-    ResultSet delayEventResultSet = null;
     try {
-      statement = connection.createStatement();
-      delayEventStatement = connection.createStatement();
-      resultSet = statement.executeQuery("select count(*) from filter");
-      int count = 0;
-      if (resultSet.next()) {
-        count = resultSet.getInt(1);
-      }
-      resultSet.close();
-      resultSet = null;
-      int times = count / FILTER_ONCE_CHECK + 1;
-      for (int i = 0; i < times; i++) {
-        resultSet = statement.executeQuery("select * from filter limit " + i * FILTER_ONCE_CHECK + "," +
-                "" + FILTER_ONCE_CHECK);
-        while (resultSet.next()) {
-          int filterId = resultSet.getInt(1);
-          String pid = resultSet.getString(2);
-          String filter = resultSet.getString(3);
-          if (!filter.equals("*.*")) {
-            StringBuilder queryStringBuilder = new StringBuilder();
-
-            queryStringBuilder.append("select id from delayevent where pid=\"");
-            queryStringBuilder.append(pid);
-            queryStringBuilder.append("\"");
-            String[] eventfilters = filter.split("\\.");
-            for (int j = 0; j < eventfilters.length; j++) {
-              if (!eventfilters[j].equals("*")) {
-                queryStringBuilder.append(" and l");
-                queryStringBuilder.append(j);
-                queryStringBuilder.append("=\"");
-                queryStringBuilder.append(filterSpecialCharacters(eventfilters[j]));
-                queryStringBuilder.append("\"");
-              }
-            }
-            try {
-              delayEventResultSet = delayEventStatement.executeQuery(queryStringBuilder.toString());
-              while (delayEventResultSet.next()) {
-                Set<Integer> delayEventIds = relationships.get(filterId);
-                if (delayEventIds == null) {
-                  delayEventIds = new HashSet<Integer>();
-                  relationships.put(filterId, delayEventIds);
-                }
-                delayEventIds.add(delayEventResultSet.getInt(1));
-              }
-              delayEventResultSet.close();
-              delayEventResultSet = null;
-            } catch (Exception e) {
-              LOG.error("buildFilterDelayEventRelationship error." + queryStringBuilder.toString(), e);
-            }
+      for (FilterKey filterKey : OrignalData.getInstance().redisCacheKeys.keySet()) {
+        String pid = filterKey.pid;
+        String filter = filterKey.eventPattern;
+        if (!filter.equals("*.*")) {
+          Set<String> events = delayEvents.get(pid);
+          LevelEvent levelEventPattern = new LevelEvent(filter);
+          for (String event : events) {
+            LevelEvent levelEvent = new LevelEvent(event);
+            if (levelEventPattern.contains(levelEvent))
+              FilterDelayEventRelationShip.getInstance().addRelation(pid, event, filterKey);
           }
         }
       }
-    } catch (SQLException e) {
-      LOG.error("buildFilterDelayEventRelationship error. " + e.getMessage());
-    } finally {
-      clearResultStatement(delayEventResultSet, delayEventStatement);
-      clearResultStatement(resultSet, statement);
+    } catch (Exception e) {
+      LOG.error("buildFilterDelayEventRelationship error.", e);
     }
     LOG.info("buildFilterDelayEventRelationship completed.using " + (System.currentTimeMillis() - currentTime) + "ms.");
-    return relationships;
   }
 
 
-  //把对应关系存进MySQL
-  private void pushRelationShipToMySQL(Map<Integer, Set<Integer>> relationships, Connection connection) {
-    long currentTime = System.currentTimeMillis();
-    Statement statement = null;
-    try {
-      statement = connection.createStatement();
-      long relationID = 0;
-      for (Map.Entry<Integer, Set<Integer>> entry : relationships.entrySet()) {
-        for (Integer eventId : entry.getValue()) {
-          statement.execute("insert into relationship(id,filterid,eventid) values(" + relationID + "," + entry
-                  .getKey() + "," + eventId + ")");
-          relationID++;
-        }
-      }
-    } catch (SQLException e) {
-      LOG.error("pushRelationShipToMySQL errors. " + e.getMessage());
-    } finally {
-      clearResultStatement(null, statement);
-    }
-    LOG.info("pushRelationShipToMySQL completed.using " + (System.currentTimeMillis() - currentTime) + "ms.");
-  }
 
 
   //分析每条延迟log,找出对应的redis里面cache，处理这条延迟log对应的所有cache key的值
-  private Map<String, EventCountSumUid> analysisLogs(Connection connection) {
+  private Map<String, EventCountSumUid> analysisLogs() {
     LOG.info("enter analysisLogs...");
     long currentTime = System.currentTimeMillis();
     Map<String, EventCountSumUid> results = new HashMap<String, EventCountSumUid>();
@@ -217,7 +105,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
       Map<String, Map<Long, Set<UidValue>>> pMap = entry.getValue();
       for (Map.Entry<String, Map<Long, Set<UidValue>>> pEntry : pMap.entrySet()) {
         String event = pEntry.getKey();
-        List<String> filters = getFilters(connection, getDelayEventID(connection, pid, event));
+        List<FilterKey> filters = getFilters(pid, event);
         Map<Long, Set<UidValue>> dateUidValues = pEntry.getValue();
         for (Map.Entry<Long, Set<UidValue>> duvEntry : dateUidValues.entrySet()) {
           long date = duvEntry.getKey();
@@ -236,8 +124,8 @@ public class DelayAnalysisLogicRunnable implements Runnable {
             eventSum += uidValue.getValue();
             uids.add(String.valueOf(uidValue.getUid()));
           }
-          for (String filter : filters) {
-            List<String> caches = getCaches(connection, pid, date, filter);
+          for (FilterKey filter : filters) {
+            List<String> caches = getCaches(date, filter);
             for (String cache : caches) {
               buildEventCountSumUidToResult(results, cache, date, eventCount, eventSum, uids);
             }
@@ -279,89 +167,40 @@ public class DelayAnalysisLogicRunnable implements Runnable {
 
   }
 
-  private int getDelayEventID(Connection connection, String pid, String event) {
-    Statement statement = null;
-    ResultSet resultSet = null;
+  private List<FilterKey> getFilters(String pid, String event) {
+    List<FilterKey> filters = new ArrayList<FilterKey>();
     try {
-      statement = connection.createStatement();
-
-      StringBuilder stringBuilder = new StringBuilder();
-      stringBuilder.append("select id from delayevent where pid=\"");
-      stringBuilder.append(pid);
-      stringBuilder.append("\"");
-
-      String[] tmps = event.split("\\.");
-      for (int i = 0; i < 6; i++) {
-        if (i >= tmps.length) {
-          stringBuilder.append(" and l");
-          stringBuilder.append(i);
-          stringBuilder.append(" is null");
-        } else {
-          stringBuilder.append(" and l");
-          stringBuilder.append(i);
-          stringBuilder.append("=\"");
-          stringBuilder.append(filterSpecialCharacters(tmps[i]));
-          stringBuilder.append("\"");
-        }
-      }
-      resultSet = statement.executeQuery(stringBuilder.toString());
-      if (resultSet.next())
-        return resultSet.getInt(1);
-    } catch (SQLException e) {
+      filters = FilterDelayEventRelationShip.getInstance().relationShip.get(pid).get(event);
+    } catch (Exception e) {
       LOG.error("getDelayEventID errors. " + e.getMessage());
-    } finally {
-      clearResultStatement(resultSet, statement);
-    }
-    return 0;
-  }
-
-  private List<String> getFilters(Connection connection, int delayEventID) {
-    List<String> filters = new ArrayList<String>();
-    Statement statement = null;
-    ResultSet resultSet = null;
-    try {
-      statement = connection.createStatement();
-      resultSet = statement.executeQuery("select event from filter INNER JOIN relationship on " +
-              "filter.id=relationship.filterid where relationship.eventid=" + delayEventID);
-      while (resultSet.next()) {
-        filters.add(resultSet.getString(1));
-      }
-    } catch (SQLException e) {
-      LOG.error("getDelayEventID errors. " + e.getMessage());
-    } finally {
-      clearResultStatement(resultSet, statement);
     }
     return filters;
   }
 
-  private List<String> getCaches(Connection connection, String pid, long date, String filter) {
+  private List<String> getCaches(long date, FilterKey filterKey) {
     List<String> caches = new ArrayList<String>();
-    Statement statement = null;
-    ResultSet resultSet = null;
     try {
-      statement = connection.createStatement();
-      resultSet = statement.executeQuery("select type,pid,sdate,edate,filter from cache where type=\"COMMON\" and pid=\"" + pid
-              + "\" and sdate<=" + date + " and edate>=" + date + " and filter=\"" + filter + "\" and " +
-              "segment=\"TOTAL_USER\" and ref0=\"PERIOD\" and ref1 is null");
-
-
-      while (resultSet.next()) {
-        caches.add(resultSet.getString(1) + "," + resultSet.getString(2) + "," +
-                dateFormatToRedisFormat(String.valueOf(resultSet.getInt(3))) + "," +
-                dateFormatToRedisFormat(String.valueOf(resultSet.getInt(4))) + "," +
-                resultSet.getString(5) + ",TOTAL_USER,VF-ALL-0-0,PERIOD");
-
+      List<CacheKeyInfo> cacheKeyInfos = OrignalData.getInstance().redisCacheKeys.get(filterKey);
+      for (CacheKeyInfo cacheKeyInfo : cacheKeyInfos) {
+        if (cacheKeyInfo.startDay <= date && cacheKeyInfo.endDay >= date) {
+          caches.add(cacheKeyInfo.type + "," + filterKey.pid + "," +
+            dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay)) + "," +
+            dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay)) + "," +
+            filterKey.eventPattern + "," +
+            cacheKeyInfo.segment + "," +
+            "VF-ALL-0-0" + "," +
+            cacheKeyInfo.timeUnitType
+            + cacheKeyInfo.ref != null ? cacheKeyInfo.ref : "");
+        }
       }
-    } catch (SQLException e) {
+    } catch (Exception e) {
       LOG.error("getDelayEventID errors. " + e.getMessage());
-    } finally {
-      clearResultStatement(resultSet, statement);
     }
     return caches;
   }
 
 
-  private void putHandleCacheValueInMySQL(Connection connection, Map<String, EventCountSumUid> results) {
+  private void putHandleCacheValueInMem(Map<String, EventCountSumUid> results) {
     long currentTime = System.currentTimeMillis();
     ShardedJedis shardedRedis = null;
     try {
@@ -370,7 +209,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
         LOG.info("delay log:" + entry.getKey() + ":" + entry.getValue().toString());
 
         //sof-dsk & sof-newgdp暂不分析延迟
-        if(entry.getKey().contains("sof-dsk") || entry.getKey().contains("sof-newgdp"))
+        if (entry.getKey().contains("sof-dsk") || entry.getKey().contains("sof-newgdp"))
           continue;
 
         String value = null;
@@ -393,13 +232,13 @@ public class DelayAnalysisLogicRunnable implements Runnable {
 
           }
           LOG.info("hgetAll from redis:" + entry.getKey() + "\t" + entry.getValue().toString() +
-                  "\tredis value" + value + " count:" + count + "\tsum:" +
-                  sum);
+            "\tredis value" + value + " count:" + count + "\tsum:" +
+            sum);
 
-          anaResultInMysql(connection, shardedRedis, HashFunctions.md5(entry.getKey().getBytes()),
-                  entry.getKey(),
-                  entry.getValue().getDate(), count, sum, entry.getValue().getCount(),
-                  entry.getValue().getSum());
+          anaResultInMem(shardedRedis, HashFunctions.md5(entry.getKey().getBytes()),
+            entry.getKey(),
+            entry.getValue().getDate(), count, sum, entry.getValue().getCount(),
+            entry.getValue().getSum());
         }
       }
     } catch (Exception e) {
@@ -422,79 +261,59 @@ public class DelayAnalysisLogicRunnable implements Runnable {
   //          一致，再判断mysql里面存的历史addCount&addSum，加上这3小时的addCount&addSum：
   //              达到>=0.05的条件，删除mysql的记录，并置redis的key过期
   //              没有0.05，更新mysql的addCount&addSum
-  private void anaResultInMysql(Connection connection, ShardedJedis shardedRedis, long keyId, String key, long date,
-                                long cacheCount, long cacheSum, long addCount, long addSum) {
+  private void anaResultInMem(ShardedJedis shardedRedis, long keyId, String key, long date,
+                              long cacheCount, long cacheSum, long addCount, long addSum) {
 
-    Statement statement = null;
-    ResultSet resultSet = null;
     try {
 
       if (checkIfExpireRedisKey(key, cacheCount, cacheSum, addCount, addSum)) {
         LOG.info("===delCacheInMySQLCache===directly reache the ratio. " + key + "\t" + cacheCount + "\t" +
-                cacheSum + "\t" + addCount + "\t" + addSum);
-        delCacheInMySQLCache(connection, shardedRedis, keyId, key);
+          cacheSum + "\t" + addCount + "\t" + addSum);
+        delCacheInMemCache(shardedRedis, keyId, key);
         return;
       }
 
-      statement = connection.createStatement();
-      String selectSQL = "select count,sum,addcount,addsum from result where id=" + keyId;
-      resultSet = statement.executeQuery(selectSQL);
-      if (resultSet.next()) {
-        long countInMySQL = resultSet.getLong(1);
-        long sumInMySQL = resultSet.getLong(2);
-        long addCountInMySQL = resultSet.getLong(3);
-        long addSumInMySQL = resultSet.getLong(4);
-        if (countInMySQL != cacheCount || sumInMySQL != cacheSum) {
-          String updateRecordSQL = String.format("update result set count=%s,sum=%s,addcount=%s," +
-                  "addsum=%s where id=%s", cacheCount, cacheSum, addCount, addSum, keyId);
-          LOG.info("differ result." + key + "\tmysql count sum:" + countInMySQL + "\t" + sumInMySQL +
-                  "redis " + "count sum:" + cacheCount + "\t" + cacheSum);
-          statement.executeUpdate(updateRecordSQL);
+      if (AnaResultTable.getInstance().resultValueMap.get(keyId) != null) {
+        ResultValue resultValue = AnaResultTable.getInstance().resultValueMap.get(keyId);
+        if (resultValue.count != cacheCount || resultValue.sum != cacheSum) {
+          resultValue.count = cacheCount;
+          resultValue.sum = cacheSum;
+          resultValue.addCount = addCount;
+          resultValue.addSum = addSum;
         } else {
-          if (checkIfExpireRedisKey(key, cacheCount, cacheSum, addCountInMySQL + addCount, addSumInMySQL + addSum)) {
+          if (checkIfExpireRedisKey(key, cacheCount, cacheSum, resultValue.addCount + addCount, resultValue.addSum + addSum)) {
             LOG.info("===delCacheInMySQLCache===mysql+redis addcount/addsum reach the ratio." + key + "redis " +
-                    "count&sum:" + cacheCount + "\t" + cacheSum + " mysql+redis addcount/addsum:" +
-                    (addCountInMySQL + addCount) + "\t" + (addSumInMySQL + addSum));
-            delCacheInMySQLCache(connection, shardedRedis, keyId, key);
+              "count&sum:" + cacheCount + "\t" + cacheSum + " mysql+redis addcount/addsum:" +
+              (resultValue.addCount + addCount) + "\t" + (resultValue.addSum + addSum));
+            delCacheInMemCache(shardedRedis, keyId, key);
           } else {
-            String updateRecordSQL = String.format("update result set addcount=%s,addsum=%s where id=%s",
-                    addCount + addCountInMySQL, addSum + addSumInMySQL, keyId);
-            LOG.info("just update mysql. " + key + " redis " + "count&sum:" + cacheCount + "\t" + cacheSum
-                    + " mysql+redis addcount/addsum:" + (addCountInMySQL + addCount) + "\t" + (addSumInMySQL + addSum));
-            statement.executeUpdate(updateRecordSQL);
+            resultValue.addCount += addCount;
+            resultValue.addSum += addSum;
           }
         }
       } else {
-        String insertSQL = String.format("insert into result values(%s,\"%s\",%s,%s,%s,%s,%s)", keyId, key,
-                date, cacheCount, cacheSum, addCount, addSum);
         LOG.info("new result.insert into mysql. " + key + "\t" + cacheCount + "\t" + cacheSum + "\t" +
-                addCount + "\t" + addSum);
-        statement.execute(insertSQL);
+          addCount + "\t" + addSum);
+        AnaResultTable.getInstance().addResult(key, date, cacheCount, cacheSum, addCount, addSum);
       }
     } catch (Exception e) {
       LOG.error("anaResultInMysql " + e.getMessage(), e);
-    } finally {
-      clearResultStatement(resultSet, statement);
     }
   }
 
   private boolean checkIfExpireRedisKey(String key, long count, long sum, long addCount, long addSum) {
     if (key.contains("pay.") || key.contains("adcalc.")) {
       return ((float) addCount / (float) count >= Constants.PAY_ADCALC_DELAY_RATIO) || ((float) addSum / (float) sum >= Constants
-              .PAY_ADCALC_DELAY_RATIO);
+        .PAY_ADCALC_DELAY_RATIO);
     } else
       return ((float) addCount / (float) count >= Constants.DELAY_RATIO) || ((float) addSum / (float) sum >= Constants
-              .DELAY_RATIO);
+        .DELAY_RATIO);
   }
 
-  private void delCacheInMySQLCache(Connection connection, ShardedJedis shardedRedis,
-                                    long keyID, String key) throws Exception {
+  private void delCacheInMemCache(ShardedJedis shardedRedis,
+                                  long keyID, String key) throws Exception {
 
-    Statement statement = connection.createStatement();
-    statement.executeUpdate("delete from result where id=" + keyID);
-    statement.close();
-
-
+    AnaResultTable.getInstance().remove(keyID);
     shardedRedis.del(key);
     //如果是所有事件计数器，就没有segment和细分
     if (key.contains("*.*"))
@@ -502,7 +321,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     //TODO 删除这一个cache对应的所有cache,带segment和细分的
     Set<String> relatedKeys = null;
     try {
-      relatedKeys = getRelatedKeys(connection, key);
+      relatedKeys = getRelatedKeys(key);
     } catch (Exception e) {
       LOG.error("getRelatedKeys ERROR " + e.getMessage(), e);
     }
@@ -520,7 +339,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
 
   private Connection getConnection() throws SQLException {
     return DriverManager.getConnection("jdbc:mysql://192.168.1.134:3306/" + KEYCACHE_DB,
-            KEYCACHE_DB_USER, KEYCACHE_DB_PWD);
+      KEYCACHE_DB_USER, KEYCACHE_DB_PWD);
   }
 
   private void clearResultStatement(ResultSet resultSet, Statement statement) {
@@ -544,58 +363,36 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     }
   }
 
-  private Set<String> getRelatedKeys(Connection connection, String key) {
+  private Set<String> getRelatedKeys(String key) throws ParseException {
     Set<String> keys = new HashSet<String>();
-
     String[] tmps = key.split(",");
-
-    Statement statement = null;
-    ResultSet resultSet = null;
-
     try {
-      statement = connection.createStatement();
-      StringBuilder stringBuilder = new StringBuilder();
-      stringBuilder.append("select * from cache where pid=\"");
-      stringBuilder.append(tmps[1]);
-      stringBuilder.append("\" and sdate=");
-      stringBuilder.append(tmps[2].replaceAll("-", ""));
-      stringBuilder.append(" and edate=");
-      stringBuilder.append(tmps[3].replaceAll("-", ""));
-      stringBuilder.append(" and filter=\"");
-      stringBuilder.append(tmps[4]);
-      stringBuilder.append("\"");
-      LOG.info(stringBuilder.toString());
-      resultSet = statement.executeQuery(stringBuilder.toString());
-      while (resultSet.next()) {
-        StringBuilder resultSB = new StringBuilder();
-        resultSB.append(resultSet.getString(2));
-        resultSB.append(",");
-        resultSB.append(resultSet.getString(3));
-        resultSB.append(",");
-        resultSB.append(dateFormatToRedisFormat(resultSet.getString(4)));
-        resultSB.append(",");
-        resultSB.append(dateFormatToRedisFormat(resultSet.getString(5)));
-        resultSB.append(",");
-        resultSB.append(resultSet.getString(6));
-        resultSB.append(",");
-        resultSB.append(resultSet.getString(7));
-        resultSB.append(",");
-        resultSB.append(resultSet.getString(8));
-        resultSB.append(",");
-        resultSB.append(resultSet.getString(9));
-        String ref1 = resultSet.getString(10);
-        if (ref1 != null) {
-          resultSB.append(",");
-          resultSB.append(ref1);
+      FilterKey filterKey = new FilterKey(tmps[1], tmps[4]);
+      List<CacheKeyInfo> cacheKeyInfos = OrignalData.getInstance().redisCacheKeys.get(filterKey);
+      for (CacheKeyInfo cacheKeyInfo : cacheKeyInfos) {
+        String startDay = dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay));
+        String endDay = dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay));
+        if (startDay.equals(tmps[2]) && endDay.equals(tmps[3])) {
+          keys.add(getCacheKeyStr(filterKey, cacheKeyInfo));
         }
-        keys.add(resultSB.toString());
       }
-    } catch (SQLException e) {
+
+    } catch (Exception e) {
       LOG.error("getRelatedKeys error", e);
-    } finally {
-      clearResultStatement(resultSet, statement);
     }
     return keys;
+  }
+
+  private String getCacheKeyStr(FilterKey filterKey, CacheKeyInfo cacheKeyInfo) {
+    return
+      cacheKeyInfo.type + "," + filterKey.pid + "," +
+        dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay)) + "," +
+        dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay)) + "," +
+        filterKey.eventPattern + "," +
+        cacheKeyInfo.segment + "," +
+        "VF-ALL-0-0" + "," +
+        cacheKeyInfo.timeUnitType
+        + cacheKeyInfo.ref != null ? cacheKeyInfo.ref : "";
   }
 
 
