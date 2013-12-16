@@ -18,12 +18,12 @@ import java.io.*;
  * Time: 4:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ReadReidsKeyFile implements Runnable {
-  public static Log LOG = LogFactory.getLog(ReadReidsKeyFile.class);
+public class ReadRedisKeyFile implements Runnable {
+  public static Log LOG = LogFactory.getLog(ReadRedisKeyFile.class);
 
   private static String REDIS_KEYCACHE_FILE = Constants.REDIS_CACHE_DIR + Constants.KEY_CACAHE_FILE;
 
-  public ReadReidsKeyFile() {
+  public ReadRedisKeyFile() {
 
   }
 
@@ -126,7 +126,7 @@ public class ReadReidsKeyFile implements Runnable {
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    ReadReidsKeyFile reader=new ReadReidsKeyFile();
+    ReadRedisKeyFile reader=new ReadRedisKeyFile();
     if (args.length != 0) {
       String cmd = args[0];
       if (cmd.equals("readRedisKey"))
