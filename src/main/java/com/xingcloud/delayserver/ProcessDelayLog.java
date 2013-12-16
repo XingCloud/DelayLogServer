@@ -48,7 +48,8 @@ public class ProcessDelayLog {
         ShardedJedis shardedRedis = null;
         try {
             shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-            shardedRedis.del(Constants.SIGNAL_KEY);
+            shardedRedis.del(Constants.SIGNAL_DUMP);
+            shardedRedis.del(Constants.SIGNAL_PROCESS);
             LOG.info("delete redis delay signal.");
         } catch (Exception e) {
             LOG.error(e.getMessage());

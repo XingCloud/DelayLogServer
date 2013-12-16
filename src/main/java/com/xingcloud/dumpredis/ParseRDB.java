@@ -47,8 +47,8 @@ public class ParseRDB {
         if (!result)
             return result;
         ShardedJedis shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-        shardedRedis.del(Constants.SIGNAL_KEY);
-        shardedRedis.lpush(Constants.SIGNAL_KEY,Constants.SIGNAL_PROCESS);
+        shardedRedis.del(Constants.SIGNAL_PROCESS);
+        shardedRedis.lpush(Constants.SIGNAL_PROCESS,Constants.SIGNAL_READY);
         LOG.info("scp from remote and parse finished . send signal "+Constants.SIGNAL_PROCESS);
         return true;
     }

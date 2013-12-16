@@ -135,8 +135,8 @@ public class DelayServiceHandler implements LogService.Iface {
         ShardedJedis shardedRedis = null;
         try {
             shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-            String result = shardedRedis.lpop(Constants.SIGNAL_KEY);
-            if (result != null && result.equals(Constants.SIGNAL_PROCESS))
+            String result = shardedRedis.lpop(Constants.SIGNAL_PROCESS);
+            if (result != null && result.equals(Constants.SIGNAL_READY))
                 return true;
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
