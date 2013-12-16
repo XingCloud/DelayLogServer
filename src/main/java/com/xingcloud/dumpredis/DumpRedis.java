@@ -74,8 +74,8 @@ public class DumpRedis implements Runnable {
     ShardedJedis shardedRedis = null;
     try {
       shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-      shardedRedis.del(Constants.SIGNAL_KEY);
-      shardedRedis.lpush(Constants.SIGNAL_KEY, Constants.SIGNAL_DUMP);
+      shardedRedis.del(Constants.SIGNAL_DUMP);
+      shardedRedis.lpush(Constants.SIGNAL_DUMP, Constants.SIGNAL_READY);
       LOG.info("send delay dump sinal to redis...");
     } catch (Exception e) {
       LOG.error(e.getMessage());
@@ -91,9 +91,9 @@ public class DumpRedis implements Runnable {
     ShardedJedis shardedRedis = null;
     try {
       shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-      String result = shardedRedis.lpop(Constants.SIGNAL_KEY);
+      String result = shardedRedis.lpop(Constants.SIGNAL_DUMP);
       LOG.info("get result "+result);
-      if (result != null && result.equals(Constants.SIGNAL_DUMP))
+      if (result != null && result.equals(Constants.SIGNAL_READY))
         return true;
     } catch (Exception e) {
       LOG.error(e.getMessage(), e);

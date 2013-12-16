@@ -37,9 +37,9 @@ public class Constants {
 
     public static final String[] REDIS_IPS = new String[]{"192.168.1.61"};
 
-    public static final String SIGNAL_KEY = "delaysignal";
+    public static final String SIGNAL_DUMP = "delaydump";
 
-    public static final String SIGNAL_PROCESS= "process";
+    public static final String SIGNAL_PROCESS= "delayprocess";
 
-    public static final String SIGNAL_DUMP= "dump";
+    public static final String SIGNAL_READY= "ready";
 }
