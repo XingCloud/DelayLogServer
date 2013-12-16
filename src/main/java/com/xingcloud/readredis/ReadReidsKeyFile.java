@@ -99,6 +99,10 @@ public class ReadReidsKeyFile implements Runnable {
     } catch (IOException e) {
       e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
     }
+
+    ShardedJedis shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
+    shardedRedis.del(Constants.SIGNAL_PROCESS);
+    shardedRedis.lpush(Constants.SIGNAL_PROCESS,Constants.SIGNAL_READY);
     LOG.info("read redis key file using "+(System.currentTimeMillis()-t1)+" ms");
     //To change body of implemented methods use File | Settings | File Templates.
   }
