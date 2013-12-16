@@ -66,6 +66,7 @@ public class ReadRedisKeyFile implements Runnable {
 
   public void readFile(){
     LOG.info("start read redis key file");
+    OrignalData.getInstance().clear();
     long t1=System.currentTimeMillis();
     try {
 
@@ -78,6 +79,7 @@ public class ReadRedisKeyFile implements Runnable {
 
       String line;
       String type, projectId, startDay, endDay, event, segment, ref0;
+      int i=0;
       while ((line = reader.readLine()) != null) {
         String[] fields = line.split("\t");
         type = fields[1];
@@ -93,6 +95,10 @@ public class ReadRedisKeyFile implements Runnable {
         FilterKey filterKey=new FilterKey(projectId,event);
         OrignalData.getInstance().addCacheKey(filterKey,
           new CacheKeyInfo(type,Long.valueOf(startDay),Long.valueOf(endDay),segment,ref0,ref1));
+
+        i++;
+        if(i%100==0)
+          LOG.info("reach line "+i);
       }
 
     } catch (FileNotFoundException e) {
