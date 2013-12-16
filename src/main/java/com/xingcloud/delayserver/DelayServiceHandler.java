@@ -5,6 +5,7 @@ import com.xingcloud.delayserver.util.Helper;
 import com.xingcloud.delayserver.thrift.LogService;
 import com.xingcloud.delayserver.redisutil.RedisShardedPoolResourceManager;
 import com.xingcloud.dumpredis.DumpRedis;
+import com.xingcloud.readredis.ReadReidsKeyFile;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.TException;
@@ -43,7 +44,7 @@ public class DelayServiceHandler implements LogService.Iface {
         blackDelayPids.add("defender");
         Thread dumpThread=new Thread(new DumpRedis());
         dumpThread.start();
-        Thread readThread=new Thread(new DumpRedis());
+        Thread readThread=new Thread(new ReadReidsKeyFile());
         readThread.start();
     }
 
