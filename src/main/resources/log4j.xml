@@ -12,21 +12,10 @@
         </layout>
     </appender>
 
-    <logger name="com.xingcloud.delayserver">
+    <logger name="com.xingcloud">
         <level value="info" />
         <appender-ref ref="CONSOLE" />
     </logger>
-    <logger name="com.xingcloud.dumpredis">
-        <level value="info" />
-        <appender-ref ref="CONSOLE" />
-    </logger>
-    <logger name="com.xingcloud.delayserver">
-        <level value="info" />
-        <appender-ref ref="CONSOLE" />
-    </logger>
-    <logger name="com.xingcloud.readredis">
-        <level value="info" />
-        <appender-ref ref="CONSOLE" />
-    </logger>
+
 
 </log4j:configuration>
