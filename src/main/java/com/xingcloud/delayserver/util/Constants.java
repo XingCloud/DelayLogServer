@@ -41,5 +41,7 @@ public class Constants {
 
     public static final String SIGNAL_PROCESS= "delayprocess";
 
+    public static final String SIGNAL_READ= "readrediskeyfile";
+
     public static final String SIGNAL_READY= "ready";
 }

@@ -1,6 +1,5 @@
 package com.xingcloud.delayserver;
 
-import com.xingcloud.collections.LevelEvent;
 import com.xingcloud.delayserver.util.Constants;
 import com.xingcloud.delayserver.util.Helper;
 import com.xingcloud.delayserver.thrift.LogService;
@@ -44,6 +43,8 @@ public class DelayServiceHandler implements LogService.Iface {
         blackDelayPids.add("defender");
         Thread dumpThread=new Thread(new DumpRedis());
         dumpThread.start();
+        Thread readThread=new Thread(new DumpRedis());
+        readThread.start();
     }
 
 
