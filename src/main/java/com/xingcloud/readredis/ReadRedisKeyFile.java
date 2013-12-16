@@ -99,6 +99,8 @@ public class ReadRedisKeyFile implements Runnable {
         i++;
         if(i%100==0)
           LOG.info("reach line "+i);
+        if(i>439600)
+          LOG.info(line);
       }
 
     } catch (FileNotFoundException e) {
@@ -106,7 +108,7 @@ public class ReadRedisKeyFile implements Runnable {
     } catch (IOException e) {
       e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
     }
-
+    LOG.info("finish read");
     ShardedJedis shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
     shardedRedis.del(Constants.SIGNAL_PROCESS);
     shardedRedis.lpush(Constants.SIGNAL_PROCESS,Constants.SIGNAL_READY);
