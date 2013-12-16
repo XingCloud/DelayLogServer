@@ -80,7 +80,7 @@ public class ReadRedisKeyFile implements Runnable {
       String line;
       String type, projectId, startDay, endDay, event, segment, ref0;
       int i=0;
-      while ((line = reader.readLine()) != null) {
+      while ((line = reader.readLine()) != null&&line.length()>0) {
         String[] fields = line.split("\t");
         type = fields[1];
         projectId = fields[2];
