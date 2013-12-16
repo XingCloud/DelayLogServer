@@ -30,10 +30,11 @@ public class ReadReidsKeyFile implements Runnable {
 
   @Override
   public void run() {
+    LOG.info("read redis key file thread start");
      while(true){
 
        try {
-         Thread.sleep(200000);
+         Thread.sleep(20000);
        } catch (InterruptedException e) {
          e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
        }
