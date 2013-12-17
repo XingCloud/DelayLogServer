@@ -139,13 +139,18 @@ public class DelayAnalysisLogicRunnable implements Runnable {
             if(eventSum>10000&&pid.equals("sof-yacup")){
               LOG.info("event sum is "+eventSum+ ". uid value is "+uidValue.getValue());
               LOG.info("pid is "+pid+" event is "+event);
+              StringBuilder builder=new StringBuilder();
+              for(FilterKey filterKey:filters){
+                builder.append(filterKey.eventPattern+" ");
+              }
+              LOG.info("filters is "+builder.toString());
             }
             uids.add(String.valueOf(uidValue.getUid()));
           }
           for (FilterKey filter : filters) {
             List<String> caches = getCaches(date, filter);
             for (String cache : caches) {
-              //LOG.info("cache: "+cache);
+
               buildEventCountSumUidToResult(results, cache, date, eventCount, eventSum, uids);
             }
           }
@@ -236,7 +241,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     try {
       shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(Constants.REDIS_CACHE_DB);
       for (Map.Entry<String, EventCountSumUid> entry : results.entrySet()) {
-        LOG.info("delay log:" + entry.getKey() + ":" + entry.getValue().toString());
+        //LOG.info("delay log:" + entry.getKey() + ":" + entry.getValue().toString());
 
         //sof-dsk & sof-newgdp暂不分析延迟
         if (entry.getKey().contains("sof-dsk") || entry.getKey().contains("sof-newgdp"))
