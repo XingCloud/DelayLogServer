@@ -82,6 +82,10 @@ public class DelayAnalysisLogicRunnable implements Runnable {
             LOG.info("filter is "+filter+". It does not have . ");
             continue;
           }
+          if(events==null){
+            LOG.info(pid+" has no delayEvent");
+            continue;
+          }
           LevelEvent levelEventPattern = new LevelEvent(filter);
           for (String event : events) {
             LevelEvent levelEvent = new LevelEvent(event);
