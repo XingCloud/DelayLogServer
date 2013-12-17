@@ -172,7 +172,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     try {
       filters = FilterDelayEventRelationShip.getInstance().relationShip.get(pid).get(event);
     } catch (Exception e) {
-      LOG.error("getDelayEventID errors. " + e.getMessage());
+      LOG.error("getFilterKey errors. " + e.getMessage());
     }
     return filters;
   }
@@ -181,6 +181,8 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     List<String> caches = new ArrayList<String>();
     try {
       List<CacheKeyInfo> cacheKeyInfos = OrignalData.getInstance().redisCacheKeys.get(filterKey);
+      if(cacheKeyInfos==null)
+        return caches;
       for (CacheKeyInfo cacheKeyInfo : cacheKeyInfos) {
         if (cacheKeyInfo.startDay <= date && cacheKeyInfo.endDay >= date) {
           caches.add(cacheKeyInfo.type + "," + filterKey.pid + "," +
@@ -194,7 +196,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
         }
       }
     } catch (Exception e) {
-      LOG.error("getDelayEventID errors. " + e.getMessage());
+      LOG.error("getCacheKey errors. " + e.getMessage());
     }
     return caches;
   }

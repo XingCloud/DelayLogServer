@@ -12,7 +12,7 @@ public class LevelEvent {
   private int level;
   public LevelEvent(String event){
      String[] levelEvents=event.split(".");
-     int i=levelEvents.length;
+     int i=levelEvents.length-1;
      while(levelEvents[i].equals("*"))
        i--;
      level=i;
