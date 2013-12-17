@@ -72,12 +72,21 @@ public class DelayAnalysisLogicRunnable implements Runnable {
   //构建每个项目的filter和延迟event的对应关系，*.*的filter不构建对应关系
   private void buildFilterDelayEventRelationship() {
     long currentTime = System.currentTimeMillis();
+    Set<String> pids=new HashSet<String>();
     try {
       for (FilterKey filterKey : OrignalData.getInstance().redisCacheKeys.keySet()) {
         String pid = filterKey.pid;
         String filter = filterKey.eventPattern;
         if (!filter.equals("*.*")) {
           Set<String> events = delayEvents.get(pid);
+          if(!filter.contains(".")){
+            LOG.info("filter is "+filter+". It does not have . ");
+            continue;
+          }
+          if(events==null){
+            pids.add(pid);
+            continue;
+          }
           LevelEvent levelEventPattern = new LevelEvent(filter);
           for (String event : events) {
             LevelEvent levelEvent = new LevelEvent(event);
@@ -86,6 +95,11 @@ public class DelayAnalysisLogicRunnable implements Runnable {
           }
         }
       }
+      StringBuilder pidsStr=new StringBuilder();
+      for(String pid: pids){
+        pidsStr.append(pid+" ");
+      }
+      LOG.info(pidsStr.toString()+ " has no delay events");
     } catch (Exception e) {
       LOG.error("buildFilterDelayEventRelationship error.", e);
     }
@@ -122,11 +136,21 @@ public class DelayAnalysisLogicRunnable implements Runnable {
               continue;
             }
             eventSum += uidValue.getValue();
+//            if(eventSum>10000&&pid.equals("sof-yacup")){
+//              LOG.info("event sum is "+eventSum+ ". uid value is "+uidValue.getValue());
+//              LOG.info("pid is "+pid+" event is "+event);
+//              StringBuilder builder=new StringBuilder();
+//              for(FilterKey filterKey:filters){
+//                builder.append(filterKey.eventPattern+" ");
+//              }
+//              LOG.info("filters is "+builder.toString());
+//            }
             uids.add(String.valueOf(uidValue.getUid()));
           }
           for (FilterKey filter : filters) {
             List<String> caches = getCaches(date, filter);
             for (String cache : caches) {
+
               buildEventCountSumUidToResult(results, cache, date, eventCount, eventSum, uids);
             }
           }
@@ -136,7 +160,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
         }
       }
     }
-    LOG.info("analysisLogs completed.using " + (System.currentTimeMillis() - currentTime) + "ms.");
+    LOG.info("analysisLogs completed.using " + (System.currentTimeMillis() - currentTime) + "ms. create "+results.size()+" entries");
     return results;
   }
 
@@ -170,9 +194,14 @@ public class DelayAnalysisLogicRunnable implements Runnable {
   private List<FilterKey> getFilters(String pid, String event) {
     List<FilterKey> filters = new ArrayList<FilterKey>();
     try {
-      filters = FilterDelayEventRelationShip.getInstance().relationShip.get(pid).get(event);
+      Map<String,List<FilterKey>> eventFilterKey = FilterDelayEventRelationShip.getInstance().relationShip.get(pid);
+      if(eventFilterKey==null)
+        return filters;
+      List<FilterKey> filterKeyList=eventFilterKey.get(event);
+      if(filterKeyList!=null)
+        filters=filterKeyList;
     } catch (Exception e) {
-      LOG.error("getDelayEventID errors. " + e.getMessage());
+      LOG.error("getFilterKey errors. " + e.getMessage());
     }
     return filters;
   }
@@ -181,20 +210,26 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     List<String> caches = new ArrayList<String>();
     try {
       List<CacheKeyInfo> cacheKeyInfos = OrignalData.getInstance().redisCacheKeys.get(filterKey);
+      if(cacheKeyInfos==null)
+        return caches;
       for (CacheKeyInfo cacheKeyInfo : cacheKeyInfos) {
         if (cacheKeyInfo.startDay <= date && cacheKeyInfo.endDay >= date) {
-          caches.add(cacheKeyInfo.type + "," + filterKey.pid + "," +
-            dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay)) + "," +
-            dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay)) + "," +
-            filterKey.eventPattern + "," +
-            cacheKeyInfo.segment + "," +
-            "VF-ALL-0-0" + "," +
-            cacheKeyInfo.timeUnitType
-            + cacheKeyInfo.ref != null ? cacheKeyInfo.ref : "");
+          StringBuilder builder=new StringBuilder();
+          builder.append(cacheKeyInfo.type).append(",");
+          builder.append(filterKey.pid).append(",");
+          builder.append(dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay))).append(",");
+          builder.append(dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay))).append(",");
+          builder.append(filterKey.eventPattern).append(",");
+          builder.append(cacheKeyInfo.segment).append(",");
+          builder.append("VF-ALL-0-0").append(",");
+          builder.append(cacheKeyInfo.timeUnitType);
+          if(cacheKeyInfo.ref!=null)
+            builder.append(",").append(cacheKeyInfo.ref);
+          caches.add(builder.toString());
         }
       }
     } catch (Exception e) {
-      LOG.error("getDelayEventID errors. " + e.getMessage());
+      LOG.error("getCacheKey errors. " + e.getMessage());
     }
     return caches;
   }
