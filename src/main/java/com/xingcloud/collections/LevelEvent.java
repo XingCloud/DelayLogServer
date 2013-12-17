@@ -15,10 +15,7 @@ public class LevelEvent {
   public String[] lEvents=new String[6];
   private int level;
   public LevelEvent(String event){
-     String[] levelEvents=event.split(".");
-     if(levelEvents.length==0){
-       LOG.info("event is "+event);
-     }
+     String[] levelEvents=event.split("\\.");
      int i=levelEvents.length-1;
      while(levelEvents[i].equals("*"))
        i--;
