@@ -5,11 +5,12 @@ base_dir=`dirname $0`/..
 COMMAND=$1
 shift
 
-memarg="-server -Xms1g -Xmx1g -Xss128K"
+memarg="-server -Xms4g -Xmx8g -Xss160K"
 gcarg="-XX:SurvivorRatio=16 -XX:+UseConcMarkSweepGC -XX:NewSize=512M -XX:MaxNewSize=512M -XX:+UseAdaptiveSizePolicy -XX:-ExplicitGCInvokesConcurrent -XX:+UseCMSCompactAtFullCollection -XX:CMSFullGCsBeforeCompaction=2"
 ####verboses="-XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintHeapAtGC -XX:+PrintGCApplicationStoppedTime"
 verboses="-XX:+HeapDumpOnOutOfMemoryError"
 main=com.xingcloud.delayserver.ProcessDelayLog
+dumpMain=com.xingcloud.dumpredis.DumpRedis
 fileencoding="-Dfile.encoding=UTF-8"
 classpath=$base_dir/conf
 for i in $base_dir/lib/*.jar;
@@ -51,6 +52,16 @@ stop_dp(){
     fi
 }
 
+dump_redis(){
+  echo "java $fileencoding $memarg $gcarg $verboses -classpath $classpath $dumpMain >/dev/null 2>&1  &"
+  java $fileencoding $memarg $gcarg $verboses -classpath $classpath $dumpMain dumpRedis >/dev/null 2>&1  &
+}
+
+process_delay(){
+  echo "java $fileencoding $memarg $gcarg $verboses -classpath $classpath $dumpMain processDelay >/dev/null 2>&1  &"
+  java $fileencoding $memarg $gcarg $verboses -classpath $classpath $dumpMain processDelay >/dev/null 2>&1  &
+}
+
 if [ "$COMMAND" = "start" ];then
     if start_dp ; then
         exit 0
@@ -73,4 +84,8 @@ elif [ "$COMMAND" = "restart" ];then
     else
         exit 1
     fi
-fi 
+elif [ "$COMMAND" = "dumpRedis" ];then
+    dump_redis;
+elif [ "$COMMAND" = "processDelay" ];then
+    process_delay;
+fi
