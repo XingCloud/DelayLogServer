@@ -1,5 +1,8 @@
 package com.xingcloud.collections;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * Created with IntelliJ IDEA.
  * User: yb
@@ -8,10 +11,14 @@ package com.xingcloud.collections;
  * To change this template use File | Settings | File Templates.
  */
 public class LevelEvent {
+  private static Log LOG= LogFactory.getLog(LevelEvent.class);
   public String[] lEvents=new String[6];
   private int level;
   public LevelEvent(String event){
      String[] levelEvents=event.split(".");
+     if(levelEvents.length==0){
+       LOG.info("event is "+event);
+     }
      int i=levelEvents.length-1;
      while(levelEvents[i].equals("*"))
        i--;

@@ -174,7 +174,12 @@ public class DelayAnalysisLogicRunnable implements Runnable {
   private List<FilterKey> getFilters(String pid, String event) {
     List<FilterKey> filters = new ArrayList<FilterKey>();
     try {
-      filters = FilterDelayEventRelationShip.getInstance().relationShip.get(pid).get(event);
+      Map<String,List<FilterKey>> eventFilterKey = FilterDelayEventRelationShip.getInstance().relationShip.get(pid);
+      if(eventFilterKey==null)
+        return filters;
+      List<FilterKey> filterKeyList=eventFilterKey.get(event);
+      if(filterKeyList!=null)
+        filters=filterKeyList;
     } catch (Exception e) {
       LOG.error("getFilterKey errors. " + e.getMessage());
     }
