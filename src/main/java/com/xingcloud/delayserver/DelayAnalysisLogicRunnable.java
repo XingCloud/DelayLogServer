@@ -141,7 +141,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
           for (FilterKey filter : filters) {
             List<String> caches = getCaches(date, filter);
             for (String cache : caches) {
-              LOG.info("cache: "+cache);
+              //LOG.info("cache: "+cache);
               buildEventCountSumUidToResult(results, cache, date, eventCount, eventSum, uids);
             }
           }
