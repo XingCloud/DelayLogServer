@@ -241,7 +241,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     try {
       shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(Constants.REDIS_CACHE_DB);
       for (Map.Entry<String, EventCountSumUid> entry : results.entrySet()) {
-        //LOG.info("delay log:" + entry.getKey() + ":" + entry.getValue().toString());
+        LOG.info("delay log:" + entry.getKey() + ":" + entry.getValue().toString());
 
         //sof-dsk & sof-newgdp暂不分析延迟
         if (entry.getKey().contains("sof-dsk") || entry.getKey().contains("sof-newgdp"))
