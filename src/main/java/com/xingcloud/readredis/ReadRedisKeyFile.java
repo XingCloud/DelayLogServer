@@ -5,6 +5,7 @@ import com.xingcloud.collections.FilterKey;
 import com.xingcloud.collections.OrignalData;
 import com.xingcloud.delayserver.redisutil.RedisShardedPoolResourceManager;
 import com.xingcloud.delayserver.util.Constants;
+import com.xingcloud.dumpredis.DumpRedis;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import redis.clients.jedis.ShardedJedis;
@@ -40,7 +41,11 @@ public class ReadRedisKeyFile implements Runnable {
        }
 
        if(ifNeedReadRedisKeyFile()){
-         readFile();
+         try {
+           readFile();
+         } catch (Exception e) {
+           e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+         }
        }
      }
   }
@@ -64,7 +69,7 @@ public class ReadRedisKeyFile implements Runnable {
     return false;
   }
 
-  public void readFile(){
+  public void readFile() throws Exception {
     LOG.info("start read redis key file");
     OrignalData.getInstance().clear();
     long t1=System.currentTimeMillis();
@@ -109,36 +114,21 @@ public class ReadRedisKeyFile implements Runnable {
       e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
     }
     LOG.info("finish read");
-    ShardedJedis shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-    shardedRedis.del(Constants.SIGNAL_PROCESS);
-    shardedRedis.lpush(Constants.SIGNAL_PROCESS,Constants.SIGNAL_READY);
+    DumpRedis.sendProcessSignalToRedis();
     LOG.info("read redis key file using "+(System.currentTimeMillis()-t1)+" ms");
     //To change body of implemented methods use File | Settings | File Templates.
   }
 
-  private void sendReadSigalToRedis() throws IOException, InterruptedException {
+  public static void sendReadSigalToRedis() throws IOException, InterruptedException {
 
-    ShardedJedis shardedRedis = null;
-    try {
-      shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-      shardedRedis.del(Constants.SIGNAL_READ);
-      shardedRedis.lpush(Constants.SIGNAL_READ, Constants.SIGNAL_READY);
-      LOG.info("send delay dump sinal to redis...");
-    } catch (Exception e) {
-      LOG.error(e.getMessage());
-      RedisShardedPoolResourceManager.getInstance().returnBrokenResource(shardedRedis);
-      shardedRedis = null;
-    } finally {
-      RedisShardedPoolResourceManager.getInstance().returnResource(shardedRedis);
-    }
+    DumpRedis.sendSignalToRedis(Constants.SIGNAL_READ,Constants.SIGNAL_READY);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    ReadRedisKeyFile reader=new ReadRedisKeyFile();
     if (args.length != 0) {
       String cmd = args[0];
       if (cmd.equals("readRedisKey"))
-        reader.sendReadSigalToRedis();
+        ReadRedisKeyFile.sendReadSigalToRedis();
     }
   }
 }

@@ -69,13 +69,20 @@ public class DumpRedis implements Runnable {
   }
 
 
-  private void sendDelaySigalToRedis() throws IOException, InterruptedException {
+  public static void sendDumpSignalToRedis() throws IOException, InterruptedException {
+    sendSignalToRedis(Constants.SIGNAL_DUMP,Constants.SIGNAL_READY);
+  }
 
+  public static void sendProcessSignalToRedis() throws Exception {
+     sendSignalToRedis(Constants.SIGNAL_PROCESS,Constants.SIGNAL_READY);
+  }
+
+  public static void sendSignalToRedis(String key,String value){
     ShardedJedis shardedRedis = null;
     try {
       shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-      shardedRedis.del(Constants.SIGNAL_DUMP);
-      shardedRedis.lpush(Constants.SIGNAL_DUMP, Constants.SIGNAL_READY);
+      shardedRedis.del(key);
+      shardedRedis.lpush(key, value);
       LOG.info("send delay dump sinal to redis...");
     } catch (Exception e) {
       LOG.error(e.getMessage());
@@ -106,11 +113,12 @@ public class DumpRedis implements Runnable {
   }
 
   public static void main(String[] args) throws Exception {
-    DumpRedis dumpRedis = new DumpRedis();
     if (args.length != 0) {
       String cmd = args[0];
-      if (cmd.equals("processdelay"))
-        dumpRedis.sendDelaySigalToRedis();
+      if (cmd.equals("dumpRedis"))
+        DumpRedis.sendDumpSignalToRedis();
+      else if(cmd.equals("processDelay"))
+        DumpRedis.sendProcessSignalToRedis();
     }
   }
 
