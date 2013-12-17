@@ -136,15 +136,15 @@ public class DelayAnalysisLogicRunnable implements Runnable {
               continue;
             }
             eventSum += uidValue.getValue();
-            if(eventSum>10000&&pid.equals("sof-yacup")){
-              LOG.info("event sum is "+eventSum+ ". uid value is "+uidValue.getValue());
-              LOG.info("pid is "+pid+" event is "+event);
-              StringBuilder builder=new StringBuilder();
-              for(FilterKey filterKey:filters){
-                builder.append(filterKey.eventPattern+" ");
-              }
-              LOG.info("filters is "+builder.toString());
-            }
+//            if(eventSum>10000&&pid.equals("sof-yacup")){
+//              LOG.info("event sum is "+eventSum+ ". uid value is "+uidValue.getValue());
+//              LOG.info("pid is "+pid+" event is "+event);
+//              StringBuilder builder=new StringBuilder();
+//              for(FilterKey filterKey:filters){
+//                builder.append(filterKey.eventPattern+" ");
+//              }
+//              LOG.info("filters is "+builder.toString());
+//            }
             uids.add(String.valueOf(uidValue.getUid()));
           }
           for (FilterKey filter : filters) {

@@ -11,10 +11,16 @@ import org.junit.Test;
  */
 public class TestLevelEvent {
   @Test
-  public void test(){
-     String event="visit.*";
+  public void testEventContain(){
+     String event="visit.*",event1="*.auto.auto.*",event2="visit.auto.*",event3="visit.*.pay.*";
      LevelEvent levelEvent=new LevelEvent(event);
-     LevelEvent levelEvent1=new LevelEvent("*.auto.auto.*");
-     System.out.print(levelEvent.contains(levelEvent1));
+     LevelEvent levelEvent1=new LevelEvent(event1);
+     System.out.println(levelEvent.contains(levelEvent1));
+
+     LevelEvent levelEvent2=new LevelEvent(event2);
+     System.out.println(levelEvent.contains(levelEvent2));
+
+     LevelEvent levelEvent3=new LevelEvent(event3);
+     System.out.println(levelEvent3.contains(levelEvent));
   }
 }
