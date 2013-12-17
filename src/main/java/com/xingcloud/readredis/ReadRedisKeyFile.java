@@ -102,10 +102,6 @@ public class ReadRedisKeyFile implements Runnable {
           new CacheKeyInfo(type,Long.valueOf(startDay),Long.valueOf(endDay),segment,ref0,ref1));
 
         i++;
-        if(i%100==0)
-          LOG.info("reach line "+i);
-        if(i>439600)
-          LOG.info(line);
       }
 
     } catch (FileNotFoundException e) {
