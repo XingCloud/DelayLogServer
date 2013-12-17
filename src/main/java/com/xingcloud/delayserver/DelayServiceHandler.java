@@ -75,7 +75,7 @@ public class DelayServiceHandler implements LogService.Iface {
 
     //把每次读到的延迟log按项目/事件/日期的顺序放进map
     private void processLogs(List<String> logs) {
-        LOG.info("enter process Log");
+        //LOG.info("enter process Log");
         long currentTime = System.currentTimeMillis();
         for (String log : logs) {
             String[] tmps = log.split("\t");
@@ -127,7 +127,7 @@ public class DelayServiceHandler implements LogService.Iface {
             }
             events.add(tmps[2]);
         }
-      LOG.info("leave process LOG");
+     // LOG.info("leave process LOG");
     }
 
     private boolean ifNeedAnalysisDelayLog() {
