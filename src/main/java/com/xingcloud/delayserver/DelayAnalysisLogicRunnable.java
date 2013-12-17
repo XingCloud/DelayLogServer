@@ -72,6 +72,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
   //构建每个项目的filter和延迟event的对应关系，*.*的filter不构建对应关系
   private void buildFilterDelayEventRelationship() {
     long currentTime = System.currentTimeMillis();
+    Set<String> pids=new HashSet<String>();
     try {
       for (FilterKey filterKey : OrignalData.getInstance().redisCacheKeys.keySet()) {
         String pid = filterKey.pid;
@@ -83,7 +84,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
             continue;
           }
           if(events==null){
-            LOG.info(pid+" has no delayEvent");
+            pids.add(pid);
             continue;
           }
           LevelEvent levelEventPattern = new LevelEvent(filter);
@@ -94,6 +95,11 @@ public class DelayAnalysisLogicRunnable implements Runnable {
           }
         }
       }
+      StringBuilder pidsStr=new StringBuilder();
+      for(String pid: pids){
+        pidsStr.append(pid+" ");
+      }
+      LOG.info(pidsStr.toString()+ " has no delay events");
     } catch (Exception e) {
       LOG.error("buildFilterDelayEventRelationship error.", e);
     }
