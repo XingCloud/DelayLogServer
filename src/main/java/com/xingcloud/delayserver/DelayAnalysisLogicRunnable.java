@@ -136,7 +136,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
               continue;
             }
             eventSum += uidValue.getValue();
-            if(eventSum>10000&&event.contains("visit.")){
+            if(eventSum>10000&&event.contains("pay.")&&pid.equals("sof-yacup")){
               LOG.info("event sum is "+eventSum+ ". uid value is "+uidValue.getValue());
               LOG.info("pid is "+pid+" event is "+event);
             }
