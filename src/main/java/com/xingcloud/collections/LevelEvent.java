@@ -1,5 +1,8 @@
 package com.xingcloud.collections;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * Created with IntelliJ IDEA.
  * User: yb
@@ -8,25 +11,26 @@ package com.xingcloud.collections;
  * To change this template use File | Settings | File Templates.
  */
 public class LevelEvent {
+  private static Log LOG= LogFactory.getLog(LevelEvent.class);
   public String[] lEvents=new String[6];
   private int level;
   public LevelEvent(String event){
-     String[] levelEvents=event.split(".");
-     int i=levelEvents.length;
-     while(levelEvents[i].equals("*"))
-       i--;
-     level=i;
-     while(i>=0){
-       lEvents[i]=levelEvents[i];
-       i--;
-     }
+    String[] levelEvents=event.split("\\.");
+    int i=levelEvents.length-1;
+    while(levelEvents[i].equals("*"))
+      i--;
+    level=i+1;
+    while(i>=0){
+      lEvents[i]=levelEvents[i];
+      i--;
+    }
   }
   public boolean contains(LevelEvent event){
-     for(int i=0;i<level;i++){
-       if(!lEvents[i].equals(event.lEvents[i])&&!lEvents[i].equals("*"))
-         return false;
-     }
-     return true;
+    for(int i=0;i<level;i++){
+      if(!lEvents[i].equals(event.lEvents[i])&&!lEvents[i].equals("*"))
+        return false;
+    }
+    return true;
   }
   @Override
   public String toString(){
@@ -43,18 +47,18 @@ public class LevelEvent {
   }
   @Override
   public boolean equals(Object o){
-     if(this==o)
-       return true;
-     if(o instanceof LevelEvent){
-       LevelEvent lEvent=(LevelEvent)o;
-       if(level!=lEvent.level)
-         return false;
-       for(int i=0;i<level;i++)
-       {
-         if(!lEvents[i].equals(lEvent.lEvents[i]))
-           return false;
-       }
-     }
-     return true;
+    if(this==o)
+      return true;
+    if(o instanceof LevelEvent){
+      LevelEvent lEvent=(LevelEvent)o;
+      if(level!=lEvent.level)
+        return false;
+      for(int i=0;i<level;i++)
+      {
+        if(!lEvents[i].equals(lEvent.lEvents[i]))
+          return false;
+      }
+    }
+    return true;
   }
 }
