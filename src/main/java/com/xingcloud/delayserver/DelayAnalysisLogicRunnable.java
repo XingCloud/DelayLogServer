@@ -78,6 +78,10 @@ public class DelayAnalysisLogicRunnable implements Runnable {
         String filter = filterKey.eventPattern;
         if (!filter.equals("*.*")) {
           Set<String> events = delayEvents.get(pid);
+          if(!filter.contains(".")){
+            LOG.info("filter is "+filter+". It does not have . ");
+            continue;
+          }
           LevelEvent levelEventPattern = new LevelEvent(filter);
           for (String event : events) {
             LevelEvent levelEvent = new LevelEvent(event);
