@@ -205,14 +205,18 @@ public class DelayAnalysisLogicRunnable implements Runnable {
         return caches;
       for (CacheKeyInfo cacheKeyInfo : cacheKeyInfos) {
         if (cacheKeyInfo.startDay <= date && cacheKeyInfo.endDay >= date) {
-          caches.add(cacheKeyInfo.type + "," + filterKey.pid + "," +
-            dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay)) + "," +
-            dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay)) + "," +
-            filterKey.eventPattern + "," +
-            cacheKeyInfo.segment + "," +
-            "VF-ALL-0-0" + "," +
-            cacheKeyInfo.timeUnitType
-            + cacheKeyInfo.ref != null ? cacheKeyInfo.ref : "");
+          StringBuilder builder=new StringBuilder();
+          builder.append(cacheKeyInfo.type).append(",");
+          builder.append(filterKey.pid).append(",");
+          builder.append(dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay))).append(",");
+          builder.append(dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay))).append(",");
+          builder.append(filterKey.eventPattern).append(",");
+          builder.append(cacheKeyInfo.segment).append(",");
+          builder.append("VF-ALL-0-0").append(",");
+          builder.append(cacheKeyInfo.timeUnitType);
+          if(cacheKeyInfo.ref!=null)
+            builder.append(",").append(cacheKeyInfo.ref);
+          caches.add(builder.toString());
         }
       }
     } catch (Exception e) {
