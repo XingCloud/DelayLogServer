@@ -19,7 +19,7 @@ public class LevelEvent {
      int i=levelEvents.length-1;
      while(levelEvents[i].equals("*"))
        i--;
-     level=i;
+     level=i+1;
      while(i>=0){
        lEvents[i]=levelEvents[i];
        i--;

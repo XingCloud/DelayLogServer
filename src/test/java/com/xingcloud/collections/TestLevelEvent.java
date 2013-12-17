@@ -12,7 +12,9 @@ import org.junit.Test;
 public class TestLevelEvent {
   @Test
   public void test(){
-     String event="pay.*";
+     String event="visit.*";
      LevelEvent levelEvent=new LevelEvent(event);
+     LevelEvent levelEvent1=new LevelEvent("*.auto.auto.*");
+     System.out.print(levelEvent.contains(levelEvent1));
   }
 }
