@@ -62,7 +62,9 @@ public class DumpRedis implements Runnable {
     long currentTime = System.currentTimeMillis();
     OrignalData.getInstance().clear();
     FilterDelayEventRelationShip.getInstance().clear();
+    LOG.info("orignalData and filterDelayEventRelationShip clear");
     ParseRDB parseRDB = new ParseRDB();
+    LOG.info("pre to scp from remote and parse");
     parseRDB.scpFromRemoteAndParse();
     LOG.info("parse cache key to local file and load in Mem using " + (System.currentTimeMillis() - currentTime) + "ms.");
     //loadToMySQL();

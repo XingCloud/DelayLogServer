@@ -22,7 +22,7 @@ public class ParseRDB {
 
     private static final Log LOG = LogFactory.getLog(ParseRDB.class);
 
-    public boolean scpFromRemoteAndParse() throws InterruptedException {
+    public boolean scpFromRemoteAndParse() throws Exception {
 
         clearCacheDir();
 
@@ -46,9 +46,7 @@ public class ParseRDB {
         boolean result = executor.awaitTermination(2, TimeUnit.HOURS);
         if (!result)
             return result;
-        ShardedJedis shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
-        shardedRedis.del(Constants.SIGNAL_PROCESS);
-        shardedRedis.lpush(Constants.SIGNAL_PROCESS,Constants.SIGNAL_READY);
+        DumpRedis.sendProcessSignalToRedis();
         LOG.info("scp from remote and parse finished . send signal "+Constants.SIGNAL_PROCESS);
         return true;
     }
