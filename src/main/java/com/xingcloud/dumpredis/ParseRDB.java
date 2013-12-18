@@ -234,8 +234,8 @@ class ScpParseChildThread implements Runnable {
         }
 
         FilterKey filterKey=new FilterKey(pid,event);
-        CacheKeyInfo cacheKeyInfo=new CacheKeyInfo(type,Long.valueOf(Helper.getDate(Long.valueOf(dates[0]))),
-          Long.valueOf(Helper.getDate(Long.valueOf(dates[1]))),segment,timeUnitType,ref);
+        CacheKeyInfo cacheKeyInfo=new CacheKeyInfo(type,Helper.getTimestamp(dates[0]),
+          Helper.getTimestamp(dates[1]),segment,timeUnitType,ref);
         OrignalData.getInstance().addCacheKey(filterKey,cacheKeyInfo);
 
       } catch (Exception e) {

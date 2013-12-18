@@ -3,6 +3,7 @@ package com.xingcloud.delayserver;
 import com.xingcloud.collections.*;
 import com.xingcloud.delayserver.redisutil.RedisShardedPoolResourceManager;
 import com.xingcloud.delayserver.util.Constants;
+import com.xingcloud.delayserver.util.Helper;
 import com.xingcloud.dumpredis.DumpRedis;
 import com.xingcloud.util.HashFunctions;
 import org.apache.commons.logging.Log;
@@ -404,8 +405,8 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     StringBuilder builder = new StringBuilder();
     builder.append(cacheKeyInfo.type).append(",");
     builder.append(filterKey.pid).append(",");
-    builder.append(dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay))).append(",");
-    builder.append(dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay))).append(",");
+    builder.append(dateFormatToRedisFormat(Helper.getDate(cacheKeyInfo.startDay))).append(",");
+    builder.append(dateFormatToRedisFormat(Helper.getDate(cacheKeyInfo.endDay))).append(",");
     builder.append(filterKey.eventPattern).append(",");
     builder.append(cacheKeyInfo.segment).append(",");
     builder.append("VF-ALL-0-0").append(",");
