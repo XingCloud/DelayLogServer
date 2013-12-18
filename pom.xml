@@ -69,6 +69,11 @@
             <artifactId>libthrift</artifactId>
             <version>0.8.0</version>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <artifactId>4.11</artifactId>
+        </dependency>
     </dependencies>
     
 </project>
