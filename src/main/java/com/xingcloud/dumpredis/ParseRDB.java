@@ -101,6 +101,7 @@ class ScpParseChildThread implements Runnable {
 
         //scp 远程的rdb文件到本地
         String scpCmd = "scp hadoop@" + remoteRedis + ":" + remoteDumpFile + " " + localDumpFile;
+        LOG.info(scpCmd);
         Helper.execShell(scpCmd);
         LOG.info(remoteRedis + "scp to local " + scpCmd + " using " + (System.currentTimeMillis() - currentTime) + "ms.");
 

@@ -46,7 +46,7 @@ public class DumpRedis implements Runnable {
      LOG.info("dumpredis start.....");
      while(true){
        try {
-         Thread.sleep(200000);
+         Thread.sleep(20000);
          if(ifNeedDumpDelayLog()){
            LOG.info("get ifNeedDumpDelayLog signal from redis");
            dump();
