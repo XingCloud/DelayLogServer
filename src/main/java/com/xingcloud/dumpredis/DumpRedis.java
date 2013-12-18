@@ -83,7 +83,7 @@ public class DumpRedis implements Runnable {
       shardedRedis = RedisShardedPoolResourceManager.getInstance().getCache(0);
       shardedRedis.del(key);
       shardedRedis.lpush(key, value);
-      LOG.info("send delay dump sinal to redis...");
+      LOG.info("send "+key+" sinal to redis...");
     } catch (Exception e) {
       LOG.error(e.getMessage());
       RedisShardedPoolResourceManager.getInstance().returnBrokenResource(shardedRedis);
