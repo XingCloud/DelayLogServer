@@ -149,10 +149,12 @@ public class DelayAnalysisLogicRunnable implements Runnable {
           }
           for (FilterKey filter : filters) {
             List<String> caches = getCaches(date, filter);
+            StringBuilder builder=new StringBuilder();
             for (String cache : caches) {
-
+              builder.append(cache+" ");
               buildEventCountSumUidToResult(results, cache, date, eventCount, eventSum, uids);
             }
+            LOG.info("filter "+filter.pid+"--"+filter.eventPattern+"  caches: "+builder.toString());
           }
 
           String allEventCountKey = buildAllEventCountCacheKey(pid, date);
