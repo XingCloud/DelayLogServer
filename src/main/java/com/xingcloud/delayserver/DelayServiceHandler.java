@@ -12,6 +12,10 @@ import org.apache.thrift.TException;
 import redis.clients.jedis.ShardedJedis;
 
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -33,6 +37,7 @@ public class DelayServiceHandler implements LogService.Iface {
 
     private Set<String> blackDelayPids;
 
+    private ExecutorService executor=new ThreadPoolExecutor(1,2,3600, TimeUnit.SECONDS,new ArrayBlockingQueue<Runnable>(3));
 
     public DelayServiceHandler() {
         LOG.info("DelayServiceHandler start.");
@@ -42,8 +47,7 @@ public class DelayServiceHandler implements LogService.Iface {
         blackDelayPids.add("fishman");
         blackDelayPids.add("db-monitor");
         blackDelayPids.add("defender");
-        Thread dumpThread=new Thread(new DumpRedis());
-        dumpThread.start();
+        executor.execute(new DumpRedis());
     }
 
 
@@ -59,7 +63,7 @@ public class DelayServiceHandler implements LogService.Iface {
             int times = i.incrementAndGet();
             if (times > 100) {
                 LOG.info("times is "+times);
-                LOG.info("logs length is "+logs.size());
+                LOG.info("logs length is "+delayLogs.size());
                 if (ifNeedAnalysisDelayLog()) {
                     LOG.info("get needAnalysisDelayLog signal from redis.");
                     Thread analysisThread = new Thread(new DelayAnalysisLogicRunnable(delayLogs, delayEvents));
