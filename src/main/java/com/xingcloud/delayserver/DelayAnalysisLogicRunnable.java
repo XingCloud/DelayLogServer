@@ -123,6 +123,8 @@ public class DelayAnalysisLogicRunnable implements Runnable {
         List<FilterKey> filters = getFilters(pid, event);
         Map<Long, Set<UidValue>> dateUidValues = pEntry.getValue();
         for (Map.Entry<Long, Set<UidValue>> duvEntry : dateUidValues.entrySet()) {
+          //long eventDate = Long.valueOf(Helper.getDate(Long.valueOf(tmps[4])));
+          // 20131226
           long date = duvEntry.getKey();
           long eventCount = duvEntry.getValue().size();
           long eventSum = 0;
@@ -199,6 +201,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
   }
 
   private List<String> getCaches(long date, FilterKey filterKey) {
+    //date: 20131226
     List<String> caches = new ArrayList<String>();
     try {
       List<CacheKeyInfo> cacheKeyInfos = OrignalData.getInstance().redisCacheKeys.get(filterKey);
@@ -209,8 +212,10 @@ public class DelayAnalysisLogicRunnable implements Runnable {
       LOG.info("date is " + date);
       for (CacheKeyInfo cacheKeyInfo : cacheKeyInfos) {
         String cache=getCacheKeyStr(filterKey, cacheKeyInfo);
-        LOG.info(cache);
-        if (cacheKeyInfo.startDay <= date && cacheKeyInfo.endDay >= date) {
+
+        //cacheKeyInfo.startDay : long for millis
+        if (Long.valueOf(Helper.getDate(cacheKeyInfo.startDay)) <= date &&
+          Long.valueOf(Helper.getDate(cacheKeyInfo.endDay)) >= date) {
           caches.add(cache);
         }
       }
