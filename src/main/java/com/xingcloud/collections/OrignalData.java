@@ -1,5 +1,8 @@
 package com.xingcloud.collections;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.util.*;
 
 /**
@@ -10,6 +13,7 @@ import java.util.*;
  * To change this template use File | Settings | File Templates.
  */
 public class OrignalData {
+   private static Log LOG= LogFactory.getLog(OrignalData.class);
    public Map<FilterKey,List<CacheKeyInfo>> redisCacheKeys;
    private static OrignalData instance=null;
    private OrignalData(){
@@ -23,13 +27,17 @@ public class OrignalData {
    public void clear(){
      redisCacheKeys.clear();
    }
-   public void addCacheKey(FilterKey filterKey,CacheKeyInfo cacheKeyInfo){
+   public synchronized void addCacheKey(FilterKey filterKey,CacheKeyInfo cacheKeyInfo){
+     if(!redisCacheKeys.containsKey(filterKey)){
+        LOG.info("add filter key "+filterKey.pid+"--"+filterKey.eventPattern);
+     }
      List<CacheKeyInfo> cacheKeyInfos=redisCacheKeys.get(filterKey);
      if(cacheKeyInfos==null){
        cacheKeyInfos=new ArrayList<CacheKeyInfo>();
        redisCacheKeys.put(filterKey,cacheKeyInfos);
      }
      cacheKeyInfos.add(cacheKeyInfo);
+
    }
 
 

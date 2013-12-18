@@ -213,7 +213,10 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     try {
       List<CacheKeyInfo> cacheKeyInfos = OrignalData.getInstance().redisCacheKeys.get(filterKey);
       if(cacheKeyInfos==null)
+      {
+        LOG.info("redisCacheKeys has no caches for "+filterKey.pid+"--"+filterKey.eventPattern);
         return caches;
+      }
       for (CacheKeyInfo cacheKeyInfo : cacheKeyInfos) {
         if (cacheKeyInfo.startDay <= date && cacheKeyInfo.endDay >= date) {
           StringBuilder builder=new StringBuilder();
