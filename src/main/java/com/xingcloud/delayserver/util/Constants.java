@@ -28,7 +28,7 @@ public class Constants {
 
     public static final int REDIS_CACHE_DB = 0;
 
-    public static final int SCPPARSER_EXECUTOR_WORKTHREADS = 4;
+    public static final int SCPPARSER_EXECUTOR_WORKTHREADS = 10;
 
     //public static String REDIS_CACHE_DIR = "/home/hadoop/ivytest/redis_cachedump_donotdelete/";
     public static final String REDIS_CACHE_DIR = "/data/redis_cachedump_donotdelete/";

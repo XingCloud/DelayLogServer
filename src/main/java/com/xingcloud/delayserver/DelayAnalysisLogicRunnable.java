@@ -126,8 +126,6 @@ public class DelayAnalysisLogicRunnable implements Runnable {
           long eventCount = duvEntry.getValue().size();
           long eventSum = 0;
           Set<String> uids = new HashSet<String>();
-          //LOG.info(entry.getKey() + "\t" + pEntry.getKey() + "\t" + duvEntry.getKey() + "\t" + duvEntry
-          //        .getValue().size());
           for (UidValue uidValue : duvEntry.getValue()) {
 
             //TODO
@@ -136,15 +134,6 @@ public class DelayAnalysisLogicRunnable implements Runnable {
               continue;
             }
             eventSum += uidValue.getValue();
-//            if(eventSum>10000&&pid.equals("sof-yacup")){
-//              LOG.info("event sum is "+eventSum+ ". uid value is "+uidValue.getValue());
-//              LOG.info("pid is "+pid+" event is "+event);
-//              StringBuilder builder=new StringBuilder();
-//              for(FilterKey filterKey:filters){
-//                builder.append(filterKey.eventPattern+" ");
-//              }
-//              LOG.info("filters is "+builder.toString());
-//            }
             uids.add(String.valueOf(uidValue.getUid()));
           }
           for (FilterKey filter : filters) {
