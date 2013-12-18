@@ -35,7 +35,7 @@ public class Constants {
 
     public static final String DUM_FILE_PREFIX = "/data/redis-dump/";
 
-    public static final String[] REDIS_IPS = new String[]{"192.168.1.61"};
+    public static final String[] REDIS_IPS = new String[]{"69.28.58.61"};
 
     public static final String SIGNAL_DUMP = "delaydump";
 

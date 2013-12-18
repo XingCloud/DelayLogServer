@@ -6,6 +6,11 @@
 	</redis>
 	<redis_sharded>
 
+        <shard>
+            <host>10.1.1.109</host>
+            <port>6379</port>
+        </shard>
+
 	    <shard>
 		<host>10.1.1.109</host>
         	<port>6380</port>
