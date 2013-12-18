@@ -44,4 +44,8 @@ public class CacheKeyInfo{
     }
     return false;
   }
+
+  public String toString(){
+     return type+","+startDay+","+endDay+","+segment+","+timeUnitType+","+ref;
+  }
 }

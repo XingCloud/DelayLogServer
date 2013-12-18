@@ -17,38 +17,42 @@ import java.util.TimeZone;
  */
 public class Helper {
 
-    private static final Log LOG = LogFactory.getLog(Helper.class);
+  private static final Log LOG = LogFactory.getLog(Helper.class);
 
-    public static String getDate(long timestamp) {
-        SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
-        df.setTimeZone(TimeZone.getTimeZone(Constants.TIMEZONE));
-        Date date = new Date(timestamp);
-        return df.format(date);
-    }
+  public static String getDate(long timestamp) {
+    SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+    df.setTimeZone(TimeZone.getTimeZone(Constants.TIMEZONE));
+    Date date = new Date(timestamp);
+    return df.format(date);
+  }
 
-    public static long getTimestamp(String dateStr) throws ParseException {
-        SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
-        df.setTimeZone(TimeZone.getTimeZone(Constants.TIMEZONE));
-        Date date = df.parse(dateStr);
-        return date.getTime();
-    }
+  public static long getTimestamp(String dateStr) throws ParseException {
+    SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+    df.setTimeZone(TimeZone.getTimeZone(Constants.TIMEZONE));
+    Date date = df.parse(dateStr);
+    return date.getTime();
+  }
 
-    public static void execShell(String cmd) {
-        try {
-            Runtime runtime = Runtime.getRuntime();
-            String[] cmds = new String[]{"/bin/sh", "-c", cmd};
-            Process process = runtime.exec(cmds);
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String cmdOutput = null;
-            while ((cmdOutput = bufferedReader.readLine()) != null)
-                LOG.info(cmdOutput);
-            int result = process.waitFor();
-            if (result != 0)
-                LOG.error("error:" + cmd);
-            else
-                LOG.info("succeeds:" + cmd);
-        } catch (Exception e) {
-            LOG.error(e.getMessage());
-        }
+  public static void execShell(String cmd) {
+    try {
+      Runtime runtime = Runtime.getRuntime();
+      String[] cmds = new String[]{"/bin/sh", "-c", cmd};
+      Process process = runtime.exec(cmds);
+      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String cmdOutput = null;
+      while ((cmdOutput = bufferedReader.readLine()) != null)
+        LOG.info(cmdOutput);
+      int result = process.waitFor();
+      if (result != 0)
+        LOG.error("error:" + cmd);
+      else
+        LOG.info("succeeds:" + cmd);
+    } catch (Exception e) {
+      LOG.error(e.getMessage());
     }
+  }
+
+  public static String dateFormatToRedisFormat(String date) {
+    return date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6);
+  }
 }

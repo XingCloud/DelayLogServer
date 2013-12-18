@@ -13,6 +13,8 @@ import java.sql.*;
 import java.text.ParseException;
 import java.util.*;
 
+import static com.xingcloud.delayserver.util.Helper.dateFormatToRedisFormat;
+
 /**
  * User: IvyTang
  * Date: 13-1-8
@@ -34,7 +36,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
 
   private int FILTER_ONCE_CHECK = 1000;
 
-  private DumpRedis dumpRedis=new DumpRedis();
+  private DumpRedis dumpRedis = new DumpRedis();
 
 
   public DelayAnalysisLogicRunnable(Map<String, Map<String, Map<Long, Set<UidValue>>>> delayLogs,
@@ -72,18 +74,18 @@ public class DelayAnalysisLogicRunnable implements Runnable {
   //构建每个项目的filter和延迟event的对应关系，*.*的filter不构建对应关系
   private void buildFilterDelayEventRelationship() {
     long currentTime = System.currentTimeMillis();
-    Set<String> pids=new HashSet<String>();
+    Set<String> pids = new HashSet<String>();
     try {
       for (FilterKey filterKey : OrignalData.getInstance().redisCacheKeys.keySet()) {
         String pid = filterKey.pid;
         String filter = filterKey.eventPattern;
         if (!filter.equals("*.*")) {
           Set<String> events = delayEvents.get(pid);
-          if(!filter.contains(".")){
-            LOG.info("filter is "+filter+". It does not have . ");
+          if (!filter.contains(".")) {
+            LOG.info("filter is " + filter + ". It does not have . ");
             continue;
           }
-          if(events==null){
+          if (events == null) {
             pids.add(pid);
             continue;
           }
@@ -95,18 +97,16 @@ public class DelayAnalysisLogicRunnable implements Runnable {
           }
         }
       }
-      StringBuilder pidsStr=new StringBuilder();
-      for(String pid: pids){
-        pidsStr.append(pid+" ");
+      StringBuilder pidsStr = new StringBuilder();
+      for (String pid : pids) {
+        pidsStr.append(pid + " ");
       }
-      LOG.info(pidsStr.toString()+ " has no delay events");
+      LOG.info(pidsStr.toString() + " has no delay events");
     } catch (Exception e) {
       LOG.error("buildFilterDelayEventRelationship error.", e);
     }
     LOG.info("buildFilterDelayEventRelationship completed.using " + (System.currentTimeMillis() - currentTime) + "ms.");
   }
-
-
 
 
   //分析每条延迟log,找出对应的redis里面cache，处理这条延迟log对应的所有cache key的值
@@ -149,12 +149,12 @@ public class DelayAnalysisLogicRunnable implements Runnable {
           }
           for (FilterKey filter : filters) {
             List<String> caches = getCaches(date, filter);
-            StringBuilder builder=new StringBuilder();
+            StringBuilder builder = new StringBuilder();
             for (String cache : caches) {
-              builder.append(cache+" ");
+              builder.append(cache + " ");
               buildEventCountSumUidToResult(results, cache, date, eventCount, eventSum, uids);
             }
-            LOG.info("filter "+filter.pid+"--"+filter.eventPattern+"  caches: "+builder.toString());
+            LOG.info("filter " + filter.pid + "--" + filter.eventPattern + "  caches: " + builder.toString());
           }
 
           String allEventCountKey = buildAllEventCountCacheKey(pid, date);
@@ -162,7 +162,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
         }
       }
     }
-    LOG.info("analysisLogs completed.using " + (System.currentTimeMillis() - currentTime) + "ms. create "+results.size()+" entries");
+    LOG.info("analysisLogs completed.using " + (System.currentTimeMillis() - currentTime) + "ms. create " + results.size() + " entries");
     return results;
   }
 
@@ -196,12 +196,12 @@ public class DelayAnalysisLogicRunnable implements Runnable {
   private List<FilterKey> getFilters(String pid, String event) {
     List<FilterKey> filters = new ArrayList<FilterKey>();
     try {
-      Map<String,List<FilterKey>> eventFilterKey = FilterDelayEventRelationShip.getInstance().relationShip.get(pid);
-      if(eventFilterKey==null)
+      Map<String, List<FilterKey>> eventFilterKey = FilterDelayEventRelationShip.getInstance().relationShip.get(pid);
+      if (eventFilterKey == null)
         return filters;
-      List<FilterKey> filterKeyList=eventFilterKey.get(event);
-      if(filterKeyList!=null)
-        filters=filterKeyList;
+      List<FilterKey> filterKeyList = eventFilterKey.get(event);
+      if (filterKeyList != null)
+        filters = filterKeyList;
     } catch (Exception e) {
       LOG.error("getFilterKey errors. " + e.getMessage());
     }
@@ -212,25 +212,16 @@ public class DelayAnalysisLogicRunnable implements Runnable {
     List<String> caches = new ArrayList<String>();
     try {
       List<CacheKeyInfo> cacheKeyInfos = OrignalData.getInstance().redisCacheKeys.get(filterKey);
-      if(cacheKeyInfos==null)
-      {
-        LOG.info("redisCacheKeys has no caches for "+filterKey.pid+"--"+filterKey.eventPattern);
+      if (cacheKeyInfos == null) {
+        LOG.info("redisCacheKeys has no caches for " + filterKey.pid + "--" + filterKey.eventPattern);
         return caches;
       }
+      LOG.info("date is " + date);
       for (CacheKeyInfo cacheKeyInfo : cacheKeyInfos) {
+        String cache=getCacheKeyStr(filterKey, cacheKeyInfo);
+        LOG.info(cache);
         if (cacheKeyInfo.startDay <= date && cacheKeyInfo.endDay >= date) {
-          StringBuilder builder=new StringBuilder();
-          builder.append(cacheKeyInfo.type).append(",");
-          builder.append(filterKey.pid).append(",");
-          builder.append(dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay))).append(",");
-          builder.append(dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay))).append(",");
-          builder.append(filterKey.eventPattern).append(",");
-          builder.append(cacheKeyInfo.segment).append(",");
-          builder.append("VF-ALL-0-0").append(",");
-          builder.append(cacheKeyInfo.timeUnitType);
-          if(cacheKeyInfo.ref!=null)
-            builder.append(",").append(cacheKeyInfo.ref);
-          caches.add(builder.toString());
+          caches.add(cache);
         }
       }
     } catch (Exception e) {
@@ -373,10 +364,6 @@ public class DelayAnalysisLogicRunnable implements Runnable {
   }
 
 
-  private String dateFormatToRedisFormat(String date) {
-    return date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6);
-  }
-
   private Connection getConnection() throws SQLException {
     return DriverManager.getConnection("jdbc:mysql://192.168.1.134:3306/" + KEYCACHE_DB,
       KEYCACHE_DB_USER, KEYCACHE_DB_PWD);
@@ -424,15 +411,19 @@ public class DelayAnalysisLogicRunnable implements Runnable {
   }
 
   private String getCacheKeyStr(FilterKey filterKey, CacheKeyInfo cacheKeyInfo) {
-    return
-      cacheKeyInfo.type + "," + filterKey.pid + "," +
-        dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay)) + "," +
-        dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay)) + "," +
-        filterKey.eventPattern + "," +
-        cacheKeyInfo.segment + "," +
-        "VF-ALL-0-0" + "," +
-        cacheKeyInfo.timeUnitType
-        + cacheKeyInfo.ref != null ? cacheKeyInfo.ref : "";
+
+    StringBuilder builder = new StringBuilder();
+    builder.append(cacheKeyInfo.type).append(",");
+    builder.append(filterKey.pid).append(",");
+    builder.append(dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.startDay))).append(",");
+    builder.append(dateFormatToRedisFormat(String.valueOf(cacheKeyInfo.endDay))).append(",");
+    builder.append(filterKey.eventPattern).append(",");
+    builder.append(cacheKeyInfo.segment).append(",");
+    builder.append("VF-ALL-0-0").append(",");
+    builder.append(cacheKeyInfo.timeUnitType);
+    if (cacheKeyInfo.ref != null)
+      builder.append(",").append(cacheKeyInfo.ref);
+    return builder.toString();
   }
 
 
