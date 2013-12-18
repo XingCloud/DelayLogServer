@@ -55,11 +55,11 @@ public class DelayServiceHandler implements LogService.Iface {
     @Override
     public int sendLogDay(List<String> logs, long daytptime) throws TException {
         synchronized (this) {
-            LOG.info("receive logs");
             processLogs(logs);
             int times = i.incrementAndGet();
-            LOG.info("times is "+times);
             if (times > 100) {
+                LOG.info("times is "+times);
+                LOG.info("logs length is "+logs.size());
                 if (ifNeedAnalysisDelayLog()) {
                     LOG.info("get needAnalysisDelayLog signal from redis.");
                     Thread analysisThread = new Thread(new DelayAnalysisLogicRunnable(delayLogs, delayEvents));
