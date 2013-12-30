@@ -28,9 +28,9 @@ public class OrignalData {
      redisCacheKeys.clear();
    }
    public synchronized void addCacheKey(FilterKey filterKey,CacheKeyInfo cacheKeyInfo){
-     if(!redisCacheKeys.containsKey(filterKey)){
-        LOG.info("add filter key "+filterKey.pid+"--"+filterKey.eventPattern);
-     }
+//     if(!redisCacheKeys.containsKey(filterKey)){
+//        LOG.info("add filter key "+filterKey.pid+"--"+filterKey.eventPattern);
+//     }
      List<CacheKeyInfo> cacheKeyInfos=redisCacheKeys.get(filterKey);
      if(cacheKeyInfos==null){
        cacheKeyInfos=new ArrayList<CacheKeyInfo>();
