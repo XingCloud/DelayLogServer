@@ -209,7 +209,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
         LOG.info("redisCacheKeys has no caches for " + filterKey.pid + "--" + filterKey.eventPattern);
         return caches;
       }
-      LOG.info("date is " + date);
+      LOG.debug("date is " + date);
       for (CacheKeyInfo cacheKeyInfo : cacheKeyInfos) {
         String cache=getCacheKeyStr(filterKey, cacheKeyInfo);
 
@@ -244,7 +244,7 @@ public class DelayAnalysisLogicRunnable implements Runnable {
           if (!mapEntry.getKey().equals("TIMESTAMP")) {
             value = mapEntry.getValue();
           }
-          LOG.info(mapEntry.getKey() + ":" + mapEntry.getValue());
+          LOG.debug(mapEntry.getKey() + ":" + mapEntry.getValue());
         }
         if (value != null) {
           String[] tmps = value.split("#");
@@ -257,9 +257,9 @@ public class DelayAnalysisLogicRunnable implements Runnable {
             entry.getValue().setCount(entry.getValue().getUidSet().size());
 
           }
-//          LOG.info("hgetAll from redis:" + entry.getKey() + "\t" + entry.getValue().toString() +
-//            "\tredis value" + value + " count:" + count + "\tsum:" +
-//            sum);
+          LOG.debug("hgetAll from redis:" + entry.getKey() + "\t" + entry.getValue().toString() +
+            "\tredis value" + value + " count:" + count + "\tsum:" +
+            sum);
 
           anaResultInMem(shardedRedis, HashFunctions.md5(entry.getKey().getBytes()),
             entry.getKey(),
