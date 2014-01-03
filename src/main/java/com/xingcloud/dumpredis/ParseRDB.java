@@ -164,6 +164,9 @@ class ScpParseChildThread implements Runnable {
       String lineBack = line;
       if (!line.contains(VF_ALL))
           return ;
+      // line starts with "BATCH_QUEUE":[   or  "SINGLE_QUEUE":[ is not common redis key , not process
+      if (line.startsWith("\"BATCH_QUEUE\":[")||line.startsWith("\"SINGLE_QUEUE\":["))
+          return ;
       try {
         if (ifLastLine) {
           line = line.substring(0, line.length() - 15);

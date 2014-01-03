@@ -23,4 +23,12 @@ public class TestLevelEvent {
     LevelEvent levelEvent3=new LevelEvent(event3);
     System.out.println(levelEvent3.contains(levelEvent));
   }
+  @Test
+  public void test(){
+    String target="\"BATCH_QUEUE\":[\"yzzt&&&&pay.*&&&&{\\\"language\\\":\\\"pt\\\"}&&&&";
+    String source="\"SINGLE_QUEUE\":[\"i18n-status&&&&i18n.*.*.request.*&&&&TOTAL_USER&&&&null&&&&null";
+    System.out.println(source.startsWith("\"SINGLE_QUEUE\":["));
+    System.out.println(target.startsWith("\"BATCH_QUEUE\":["));
+    System.out.println(new String("\"BATCH_QUEUE\":").length());
+  }
 }
